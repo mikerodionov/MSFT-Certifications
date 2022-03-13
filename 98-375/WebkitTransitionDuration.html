@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Test - webkit-transition-duration</title>
+    <style>
+        .box {
+            width: 150px;
+            height: 150px;
+            background: goldenrod;
+            margin-top: 50px;
+            margin-left: auto;
+            margin-right: auto;
+            -webkit-transition-duration: 1s;
+            -moz-transition-duration: 1s;
+            -o-transition-duration: 1s;
+            transition-duration: 1s;
+        }
+
+        .box:hover {
+          background-color: lightblue;
+          cursor: pointer;
+        }
+</style>
+</head>
+<body>
+    <a class="box" href="https://mikerodionov.com">mikerodionov.com</a>
+    <div class="box"></div>
+</body>
+</html>
