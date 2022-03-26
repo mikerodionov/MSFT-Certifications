@@ -39,14 +39,172 @@ Generic Routing Encapsulation (GRE) is a tunneling protocol developed by Cisco S
 ```
 
 - VNET is defined as one or more CIDR blocks of private IPs (defined in [RFC 1918](https://datatracker.ietf.org/doc/html/rfc1918) or others - you can specify public IP blocks but they will be considered internal/private anyway, i.e. not accessible from internet)
-- We can also optionally can add IPv6 CIDR blocks = VNETs are dual stack
+- It is recommended to use IP ranges from RFC 1918
+- We can also optionally can add IPv6 blocks (we can add 0 or more IPv6 addresses), thus creating dual stack netwrok - this can be done on VNET creation stage or afterwards
+- The subnets for IPv6 must be exactly /64 in size. This ensures future compatibility should you decide to enable routing of the subnet to an on-premises network since some routers can only accept /64 IPv6 routes
+- Make sure your IP rabnges do not overlap both between on-premise and other Azure VNETs you use/manage
 
+```diff
++Always create IPv6 subnets with /64 size
+```
+It is recommended to use addresses defined in RFC 1918:
 ```diff
 +10.0.0.0    - 10.255.255.255  (10/8 prefix)
 +172.16.0.0  - 172.31.255.255  (172.16/12 prefix)
 +192.168.0.0 - 192.168.255.255 (192.168/16 prefix)
 ```
+Also the following IP ranges cannot be used for Azure VNETs:
+```diff
+-224.0.0.0/4        - Multicast
+-255.255.255.255/32 - Broadcast
+-127.0.0.0/8        - Loopback
+-169.254.0.0/16     - Link-local
+-168.63.129.16/32   - Internal DNS
+```
+
+## Subnets
 
 - We segment VNETs into subnets
+- Subnets use portions of VNET IP addresses block
+- Smallest IPv4 subnet is /29, largest is /2
+- 5 IPs of every block are used by Azure for:
+    - .0 - network address
+    - .1 - default gateway
+    - .2 - Azure DNS
+    - .3 - Azure DNS
+    - .255 - network broadcast
+- Thus /29 gives not 8, but 3 usable IPs, /28 - 11 instead of 16, /27 - 27 instead of 32 etc.
 
-9:43
+## Public IPs
+
+- When you create public IP in Azure it is **regional**
+- By default Azute resources are allowed to access internet (outbound + traffic send in response - stateful connection) with their private Azure IPs (exist on resource/assigned to its interface directly)
+- Azure Public IP can be added to Azure as a resource and attached to another resource (i.e. you won't see it in IP config as it is "linked externally to resource" - resource do not see it, linking handled by Azute fabric)
+- Azure Public IPs have 2 SKUs:
+    - Basic
+        - You can have certain number of those for free
+        - Open by default (use NSG to lock down)
+        - Can be dynamic (can change on stop/start) or static
+        - No AZ support (no resilience against data center failure)
+    - Standard
+        - Static only
+        - Locked down by default (use NSG to allow)
+        - AZ support
+- Certain networking resources require matching IP SKU - e.g. Standard SKU LB require standard SKU IP (mainly for AZ support)
+- Azure public IPs are used when we need to provide access to our resources from Internet (with NLBs etc.)
+- Public IPs
+- When multiple public IPs are required and you need them as a continuous block you can use **Public IP prefix** (contiguous block of public IPs), e.g. you can use this for NAT Gateways
+
+## VNETs Peering
+
+- When you have multiple regions and want to connect VNETS you have in them you will need peering.
+- Peering requires **unique IP ranges** for connecting VNETs - **IP scpaces can not overlap**
+- Withouth peering you would need to implement site-to-site VPN which will introduce more complixity and be limited by speed of the tunnel/appliance
+- Peering uses native Azure backbone free of site-to-site VPN limitations
+- We can peer across regions, but not across distinct Azure clouds (China, US Gov, Germany) - you can only peer within the same cloud
+- Cross subscription peering has to be authorized (it will be made up of 2 peerings for 2 directions)
+- Once peering is implemented we have "common IP space" comprised of all peered/known IP spaces (Azure VNET is known IP scpace tag), once VNETS are peered VNET tags will be including all peered IP spaces
+- For hub and spoke topology peering is not transitive so you have to create additional peerings if you want to bypass hub (move to mesh topology) or, alternatively route through hub, placing virtual appliance into hub which will be doing routing or gateway subnet with gateway devices (site-to-site VPN or Express Route)
+- On peering level we can further enable flag "Allow gateway transit" (let them use your gateways) on one side and "Use remote gateway" on another
+    - Allow Gateway Transit on hub/receiving side - "Use this virtual network's gateway or Route Server" - AllowGatewayTransit
+    - Use remomte gateway on spoke VNET side - "Use the remote virtual network's gateway or Route Server"
+    - Additionally on spoke VNET side you may need to allow hub network to forward traffic from other VNETs - "Traffic forwarded from remote virtual networks" (enabled by default)
+
+    ![image](/AZ-700/Images/AllowGatewayTransit.png)
+
+## VNETs Routing
+
+- In Portal for every NIC you can see "Effective Routes" - to see routes it knows about (Source - State - Prefix - Next Hop Type), as well as "Effective security rules" - to see associated NSGs
+- Route source can be Default or User
+- Next hop types: Virtual network gateway, Virtual network, Internet, Virtual appliance, None
+- UDR - User Defined Routes can be defined on NIC level to specify next hop for prefix to change default behavior
+
+## NAT Gateway
+
+- Provides outbound NAT connectivity
+- Uses standard SKU public IPs or public IPs prefixes and links those to particular subnets, so that their outbound traffic goes via NAT
+- Efficient, but can suffer from port exhaustion (limited number of ports per IP - 64k ports) - to scale add more IPs or prefix
+- Can be zonal or regional, but cannot be zone redundant (pin to a zone or deploy to a region only)
+- IPv4 only
+- Requires/works only with standard SKU resources - IPs, subnets, NLBs
+
+## DNS Services
+
+- By default all resources in VNET use Azure DNS - provides name resolution for resources **in the same VNET**
+- Uses 168.63.129.16/32 IP - Azure DNS end point
+- Custom DNS can be configured on VNET or NIC level
+    - Your own DNS servers of any kind (BlueCat etc.)
+    - Azure Private DNS Zones - specific zone name within which you can create DNS records manually or having auto-registration from VNETs
+        - VNET can link to only 1 Azure Private DNS zone for registration
+        - VNET can be linked to multiple Azure Private DNS zones for resolution
+        - Azure Private DNS Zones are global resources (can be used cross-regions)
+        - Each zone supports up to 100 VNETS for registation
+        - Each zone supports up to 1000 VNETS for resolution
+    - Azure Public DNS Zones
+        - Only manual registration, no auto-registration
+        - Specific zone name, zone is authoritative, you should own the name
+
+## Hybrid Connectivity
+
+# S2S VPN
+
+- Connecting Azure VNET to on-prem network(s)
+- Start with creating GW subnet (min /29, recommended /27)
+    - /29 = 3 usable IPs - fine if subnet is use only for S2S-VPN or only Express Route Gateway
+    - /27 = 27 - you will need - if you need both VPN and Express Route
+    - Plan carefully as you can resize subnet afterwards, when  not sure use /27
+- Deploy **VPN GW** into GW VNET
+    - [A lot of SKUs](https://docs.microsoft.com/en-us/azure/vpn-gateway/vpn-gateway-about-vpngateways#gwsku) - main differentiator is speed
+        - Basic SKU - very limited
+            - Policy based (static) / route based is possible but limited to 1 S2S and no P2S
+            - Can have only 1 tunnel (connects to only one network)
+            - Can't coexist with Express Route
+            - Can't do point to site VPN
+        - Other SKUs (Gen1, Gen 2) - recommended for use
+            - Route based (dynamic)
+            - N number of tunnels, encryption per tunnel
+            - Coexistance with Express Route
+            - Point to Site VPN supported
+            - Optional BGP support
+            - Active-Active configurations
+        - You can't convert GW SKU from Basic to Gen1/2 without recreating it, but you can convert between Gen1/Gen2 SKUs
+- GW SKUs can be split by feature SET into Basic & Gen1/2 SKUs as explained above
+    ![image](/AZ-700/Images/GatewaySkuByFeatureSet.png)
+- Provisioning outline
+    - We create in Azure VPN GW (for active-active we can create two)
+    - On-premise we have CIDR block and GW devices with public IPs
+    - We then create LAN GW in Azure which represents public IPs of on-premise GW devices (for active-active we can create two)
+    - We then create VPN cpnnectopn betwee LAN GW and VPN GW
+    - There are multiple active-active configurations
+    - Each individual tunnel is 1 Gbps (your GW can be 10 Gbps, but individual tunnels are limited by 1 Gbps)
+- Once you did correct configuration your LAN is joined with your Azure VNET(s)
+
+### P2S VPN
+
+- Clients
+    - OpenVPN - all clients, TLS 443
+    - SSTP - Windows clients, TLS 443
+    - IKEv2 - Mac clients
+- Optional certificate based authentication is supported
+- Integration with AD is possible (RADIUS required) - conditional access, MFA
+- Connection over Interner - speed is less predictable
+
+### Express Route
+
+- Private L2 connection to [MSFT WAN/backbone](https://infrastructuremap.microsoft.com/explore)
+- In every region where MSFT has presence we have an opportunity to connect to their their backbone
+- [Meet Me peering points/enterprise edge locations](https://docs.microsoft.com/en-us/azure/expressroute/expressroute-locations#global-commercial-azure) where you connect your or provider's equipment to MSFT equipment
+    - MPLS when using provider's equipment - you buying a circuit/line with certain speed
+    - Express Route Direct when using customer's equipment - you buy a port with certain speed
+- Some of the location have Local Azure Region
+- Once connection (physical) is in place you can't yet connect, you still need to configure/advertise routes:
+    - Private peering - LAN to Azure VNET(s) - LAN address space advertised up to VNET, inbound LAN to VLAN traffic flows throug GW, outbound VLAN to LAN goes via **Microsoft Enterprise edge routers (MSEEs)**
+        - You can enable Fast Path so that inbound connection will not go through GW, but goes directly to resources instead (Fast Path has limitation - no support for basic NLB, can't connect to Private Link)
+    - Micrsoft peering - LAN to Azure Services not living within VNET
+- **Express route gateway** is required with private peering deployed into GW subnet (can coexist with VPN GW and always takes precedence)
+    - Different SKUs
+        - By speed: Standard, HighPerformance, UltraPerformance
+        - By features: Standard, High Port, Ultra Performance
+        ![image](/AZ-700/Images/ExpressRouteGatewaySkuByFeatureSet.png)
+    - Can be zonal or zone-redundant (depends on SKU)
+    - Connect your Azure VNETs between each other using peering, as connecting them via Express Route can add latency
