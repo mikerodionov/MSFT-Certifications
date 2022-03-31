@@ -275,32 +275,36 @@ Options to make publicly available services HA - various types of LB, choise dep
 | L7 (http)    | -      | -                   |
 | L4 (tcp/udp) | -      | Azure Load Balancer |
 
+Various solutions from the table can be combined on a global or regional level.
+
 ### Azure Load Balancer
 
-- L4
-- 5 tuples - SRC IP/PORT, DEST IP/PORT, PROTOCOL
+- L4 - 5 tuples - SRC IP/PORT, DEST IP/PORT, PROTOCOL
 - Acts as front end, can be either INT or EXT
 - Has rules which decide how traffic is distributed, depending on SKU
-    - Basic
+    - Basic SKU
         - free
         - no SLA
         - up to 300 targets from the same availability set or VM scale set
         - no AZ support
         - open by default (similar to basic public IP)
         - Basic LB used with Basic public IP
-    - Standard
+    - Standard SKU
         - paid
         - has SLA
         - up to 1000 backend targets in the same VNET as LB
-        - can point to IPs or NICs (some resources don't have NICs - e.g. pods in AKS don't have NICs, but we can target them by IP)
+        - can point to IPs or NICs (some resources don't have NICs - e.g. pods in AKS don't have their own NICs, but we can target them by IP as long as they are in the same VNET as LB)
         - AZ support (can be zonal or zone-redundant)
-        - locked down by default
-- Health probes are send to back end pools to ensure health of targets
-- Rule types for traffic distribution across bakced pool(s)
+        - locked down by default (similar to standard public IP)
+- Health probes are send to backend pools to ensure health of targets
+- Rule types for traffic distribution across bakced pool(s):
     - LB rule - hash based distribution using 5 tuples (SRC IP/PORT, DEST IP/PORT, PROTOCOL)
-        - Stickenes can be configured, by default 5 tuples used, but can be 3 tuple (- PORT) or 2 tuple (- PORT, - PROTOCOL)
-    - NAT rule - no distribution just always directing to particular VM PORT
-    - With standard we can do outbound NAT rul
+        - Stickenes can be configured, by default 5 tuples stickeness used, but can be 3 tuple (- PORT) or 2 tuple (- PORT, - PROTOCOL)
+    - NAT rule - no distribution just always directing to particular VM and PORT
+        - With standard SKU we can do outbount NAT rules = Source Network Address Translation (SNAT)
+- There is finite number of rules
+- Standard SKU allows to use HA ports
+- 
 
 ### Azure App Gateway
 
