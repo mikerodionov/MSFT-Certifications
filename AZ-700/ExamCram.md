@@ -146,7 +146,7 @@ Also the following IP ranges cannot be used for Azure VNETs:
 
 ## Hybrid Connectivity
 
-# S2S VPN
+### S2S VPN
 
 - Connecting Azure VNET to on-prem network(s)
 - Start with creating GW subnet (min /29, recommended /27)
@@ -194,17 +194,120 @@ Also the following IP ranges cannot be used for Azure VNETs:
 - Private L2 connection to [MSFT WAN/backbone](https://infrastructuremap.microsoft.com/explore)
 - In every region where MSFT has presence we have an opportunity to connect to their their backbone
 - [Meet Me peering points/enterprise edge locations](https://docs.microsoft.com/en-us/azure/expressroute/expressroute-locations#global-commercial-azure) where you connect your or provider's equipment to MSFT equipment
-    - MPLS when using provider's equipment - you buying a circuit/line with certain speed
-    - Express Route Direct when using customer's equipment - you buy a port with certain speed
+- MPLS when using provider's equipment - you buying a circuit/line with certain speed
+- Express Route Direct when using customer's equipment - you buy a port with certain speed
 - Some of the location have Local Azure Region
-- Once connection (physical) is in place you can't yet connect, you still need to configure/advertise routes:
-    - Private peering - LAN to Azure VNET(s) - LAN address space advertised up to VNET, inbound LAN to VLAN traffic flows throug GW, outbound VLAN to LAN goes via **Microsoft Enterprise edge routers (MSEEs)**
-        - You can enable Fast Path so that inbound connection will not go through GW, but goes directly to resources instead (Fast Path has limitation - no support for basic NLB, can't connect to Private Link)
-    - Micrsoft peering - LAN to Azure Services not living within VNET
-- **Express route gateway** is required with private peering deployed into GW subnet (can coexist with VPN GW and always takes precedence)
-    - Different SKUs
-        - By speed: Standard, HighPerformance, UltraPerformance
-        - By features: Standard, High Port, Ultra Performance
-        ![image](/AZ-700/Images/ExpressRouteGatewaySkuByFeatureSet.png)
-    - Can be zonal or zone-redundant (depends on SKU)
-    - Connect your Azure VNETs between each other using peering, as connecting them via Express Route can add latency
+- Once connection (physical) is in place you can't yet connect, you still need to configure/advertise routes - private peering or Microsoft peering
+    
+    - **Private peering** - LAN IP space to Azure VNET(s) IP space
+        - LAN address space advertised up to VNET, inbound LAN to VLAN traffic flows throug GW, outbound VLAN to LAN goes via **Microsoft Enterprise edge routers (MSEEs)**
+        - Requires ER GW to be deployed in GW subnet (ER GW is different from VPN GW, they can coexist and ER GW takes precedence by default)
+        - /27 GW subnet and premium SKU of ER GW required for deploying BOTH ER and VPN gateways into it
+        - You can do VPN over ER to ensure end-to-end encryption (ER itself considered to be private connection with no encryption in place)
+        - You can enable FastPath so that inbound connection will not go through ER GW, but go directly to Azure resources instead (FastPath has limitation - no support for basic NLB, doesn't allow connection to Private Link) - ER GW still will be required for accessing other resources and BGP routes propagation
+        - There are different SKUs of ER GW
+            - By speed: Standard, HighPerformance, UltraPerformance
+            - By features:
+                - Standard - up to 4 circuit connections
+                - High Port - up to 8 circuit connections + VPN and ER GWs coexistence
+                - Ultra Performance (up to 16 circuit connections) + VPN and ER GWs coexistence + FastPath (allows inbound connection go directly to Azure resources bypassing ER GW via routes filter)
+                ![image](/AZ-700/Images/ExpressRouteGatewaySkuByFeatureSet.png)
+                - Can be zonal or zone-redundant (depends on SKU)
+                - Connect your Azure VNETs between each other using VNET peering, as connecting them via Express Route can add latency (Meet Me point can be too far away and will add latency)
+                - Depending on ER Circuit size (from 50 Mbps to 100 Gbps) number of VNETs links can vary from 20 to 100
+
+    - **Micrsoft peering** - LAN to Azure Services not living/existing within VNETs - you normally connect to those via public IPs but with ER Microsoft Peering you can reach out to them via ER
+        - If you just turn it on nothing changes, as by default roues not advertised via BGP to redirect traffic into ER peering connection
+        - To enable this you have to create **route filter** and link that to Microsoft peering, whch will advertise Azure services via BGP (you can select which service community and region to advertise)
+        - Microsoft/Provider edge requires private IPs for privare peering (no point to use public for that) or public for Microsoft peering
+
+- **More on Express Route SKUs**
+    - Standard - has geo-political boundary (created within [geo-political region](https://docs.microsoft.com/en-us/azure/expressroute/expressroute-locations#locations) which includes multiple regions)
+    - Premium
+        - can be global (can connect to any region on MSFT backbone network) - Global connectivity to Microsoft core network
+        - you can advertise more routes - increased route table limit from 4000 to 10000 for private peering
+        - Connectivity to Microsoft 365
+
+- Azure ER data plans
+    - In Azure generally we do not pay for ingress, but we do pay for egress traffic, the same applicable to ER, but we have 3 SKUs:
+        - Metered Plan - you only pay for egress - no egress included into plan, e.g. 100 Mbps - 110$ per month, but you pay per GB for outbound data
+        - Unmetered Plan (price is significantly higher) - but egress is free, e.g. 100 Mbps - 575$ per month, but you don't pay for egress - fix rate for unlimited egress
+        - Local Circuit - cheaper, when meet me location is very close to specific region, you can use local circuit to this closest specific region (and only to it) - **local only region**
+
+#### BFD
+
+- [BFD (Bidirectional Forwarding Detection)](https://docs.microsoft.com/en-us/azure/expressroute/expressroute-bfd) - enables bi-derectional forwarding detection, enables much faster link failover (sub-seconds)
+
+#### [MACsec](https://docs.microsoft.com/en-us/azure/expressroute/expressroute-howto-macsec)
+
+- Express Route Direct - no service provider involved, at meet me location you connect directly your edge router to MSFT edge router ports
+- MACsec - allows you encrpyt traffic between your and microsoft edge routers when you use ER Direct (not end to end encryption only between edge routes)
+- Express Route Direcr uses 2 ports, MACsec can be enabled simultaneously on both or alternatively you can enable it one port at a time to minimize downtime
+- Both XPN and non-XPN ciphers can be configured:
+    - GcmAes128
+    - GcmAes256
+    - GcmAesXpn128
+    - GcmAesXpn256
+
+#### Global Reach
+
+- You can use multiple local meet me locations in different parts of the world - this enables you to connect to Azure via local point of presense directly, as you won't want your remote region to talk with Azure over ER connection/circuit located in other part of the world
+- Once you have mutliple ER connections/circuits you can configure your locations to talk between each other via Express Route using ER Global Reach feature
+
+### Azure Virtual WAN
+
+- Service which enables you to create managed VNET within region which simplifies connecting all your VNETS and LANs = software defined WAN
+- This managed VNET allows you to peer all your other VNETs to it (options depend on SKU)
+- 2 SKUs
+    - Basic - only supports S2S VPN
+    - Standard - supports S2S VPN, P2P VPN, ER, VNET transitive, Multihub
+- Custom route tables can be added to restrict "any-to-any"
+- 3rd party NVA (Network Virtual Appliances) can be added into managed VNET (e.g. Barracuda CloudGen)
+
+## Load Balancing Solutions
+
+Options to make publicly available services HA - various types of LB, choise depend on use case/needs.
+
+**Load Balancers**
+
+| -            | Global | Regional            |
+|--------------|--------|---------------------|
+| L7 (http)    | -      | -                   |
+| L4 (tcp/udp) | -      | Azure Load Balancer |
+
+### Azure Load Balancer
+
+- L4
+- 5 tuples - SRC IP/PORT, DEST IP/PORT, PROTOCOL
+- Acts as front end, can be either INT or EXT
+- Has rules which decide how traffic is distributed, depending on SKU
+    - Basic
+        - free
+        - no SLA
+        - up to 300 targets from the same availability set or VM scale set
+        - no AZ support
+        - open by default (similar to basic public IP)
+        - Basic LB used with Basic public IP
+    - Standard
+        - paid
+        - has SLA
+        - up to 1000 backend targets in the same VNET as LB
+        - can point to IPs or NICs (some resources don't have NICs - e.g. pods in AKS don't have NICs, but we can target them by IP)
+        - AZ support (can be zonal or zone-redundant)
+        - locked down by default
+- Health probes are send to back end pools to ensure health of targets
+- Rule types for traffic distribution across bakced pool(s)
+    - LB rule - hash based distribution using 5 tuples (SRC IP/PORT, DEST IP/PORT, PROTOCOL)
+        - Stickenes can be configured, by default 5 tuples used, but can be 3 tuple (- PORT) or 2 tuple (- PORT, - PROTOCOL)
+    - NAT rule - no distribution just always directing to particular VM PORT
+    - With standard we can do outbound NAT rul
+
+### Azure App Gateway
+
+### Azure Traffic Manager
+
+### Azure Front Door
+
+## Network Security Groups and Application Security Groups
+
+
