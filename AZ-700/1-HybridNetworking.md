@@ -58,7 +58,7 @@ Further reading:
  - P2S VPN supports the following authentication methods
   - Native Azure certificate authentication - authenticate by certificate present on client's device
   - Native AzureAD authentication (only supported for OpenVPN protocol and Windows 10 or 11, requires use of Azure VPN Client)
-  - Authenticate using AD Domain Server (via RADIUS)
+  - Authenticate using AD Domain Server (via RADIUS, uses OpenVPN)
 
 ### select an appropriate virtual network gateway SKU
 ### plan and configure RADIUS authentication
@@ -82,5 +82,7 @@ Further reading:
 ### configure encryption over ExpressRoute
 ### implement Bidirectional Forwarding Detection
 ### diagnose and resolve ExpressRoute connection issues
+
+- Bidirectional Forwarding Detection (BFD) - can be used for link failure detection to ensure faster failover to the secondary link. BGP keep-alive and hold-time lead to link failure detection timings of up to 3 minutes between MSEE and customer edge routers. BFD reduces that to a few seconds.
 
 - When checking ER circuits verify that the Provider status (ER or Cloud Exchange) = Provisioned
