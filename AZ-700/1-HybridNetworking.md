@@ -51,6 +51,14 @@ Further reading:
   - P2SDiagnosticLog - P2S control messages and events on GW
 
 - P2S can use AD server for VPN authentication - for that Remote Access Dial In User Service (RADIUS) server has to be installed (on-prem or in Azure) and integrated with AD. Azure VPN GW can relay messages from VPN clients via RADIUS server to the AD controller
+- P2S VPN supports the following protocols
+  - OpenVPN Protocol
+  - Secure Socket Tunneling Protocol (SSTP) - uses PPP to send traffic over TLS
+  - IKEv2 VPN
+ - P2S VPN supports the following authentication methods
+  - Native Azure certificate authentication - authenticate by certificate present on client's device
+  - Native AzureAD authentication (only supported for OpenVPN protocol and Windows 10 or 11, requires use of Azure VPN Client)
+  - Authenticate using AD Domain Server (via RADIUS)
 
 ### select an appropriate virtual network gateway SKU
 ### plan and configure RADIUS authentication
