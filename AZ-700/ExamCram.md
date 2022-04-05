@@ -370,10 +370,54 @@ The HA ports load-balancing rules is configured when you set the front-end and b
 
 - Uses massive MSFT backbone network and its points of presence. AFD adds anycast IP which is available at all PoP (can be behind WAF) and then you have targets behind it
 - L7: http, https, http2
-- User goes to anycast IP, then split TCP kicks in, which establish TCP and TLS to local PoP
+- User goes to anycast IP, then split TCP kicks in, which establish TCP and TLS to the closes local PoP
 - You can do SSL offload on local PoP
+- Local PoP can do caching on local PoP
+
+
+Has 3 tiers
+    - Classic
+    - Azure Front Door Standard/Premium ("v2") ~ combined with WAF and Azure CDN
+        - Premium SKU supports private link and bot protection
+
+![image](./Images/AFDTiers.png)
+
 
 ## Network Security Groups and Application Security Groups
+
+- To protect from netwrok attacks we have Azure Security Center which provides advice on locking things down
+- Azure Security Center was merged with Azure Defender into Microsoft Defender for Cloud which provided
+    - Continous assessment - secure score
+    - Security recommendation
+    - Security alerts - threats detection
+- Designed for massive scale, uses ML to detect anomalies/threats, prevent DDoS attacks
+
+For controlling access we have **NSG** and **ASG**
+
+- NSG
+    - can be attached to the objects within VNET = to NICs or subnets - the latter is better from ease of management (it is not an edge device, it is set of rules applied/enforced on a NIC level)
+    - regional construct - can be applied to the subnets or VMs inside of VNETs in the same region only (can't be applied to VNET directly)
+    - have inbound and outbound rules
+        - 5 tuple
+            - CIDR
+            - service tags
+    - default rules
+        - INBOUND
+            - Anything from and to VNET is allowed (VNET = known connected IP space, will include peered networks)
+            - Azure LB always allowed to talk between each azure (for health probing)
+            - All other inbound is disabled by default
+        - OUTBOUND
+            - all allowed from VNET to VNET
+            - all allowed from VNET to Internet, stateful (= response traffic will be allowed)
+            - All other outbound is disabled by default
+    - additional rules can be added as needed
+        - service tags can be used as targets
+        - service tags represent different Azure services (= complete and updated set of public IPs associated with the service = IP CIDR per service-region)
+        - some service tags are single directional (Storage, Service only Outbound) other bi-directional (SqlManagement)
+            - Azure services which exsist outside of VNET = only outbound
+            - Azure resources deployed into VNET = outbound/inbound
+ 
+
 
 ## Service Endpoints
 
