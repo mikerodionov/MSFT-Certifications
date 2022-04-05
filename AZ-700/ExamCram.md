@@ -256,12 +256,15 @@ Also the following IP ranges cannot be used for Azure VNETs:
 
 ### Azure Virtual WAN
 
-- Service which enables you to create managed VNET within region which simplifies connecting all your VNETS and LANs = software defined WAN
+- Service which enables you to create managed VNET within region which simplifies connecting all your VNETS and LANs = software defined WAN (SD-WAN)
+- To remove administrative overhead of multiple peerings, VPNs and Express routes
 - This managed VNET allows you to peer all your other VNETs to it (options depend on SKU)
-- 2 SKUs
+- Regional service, you create VWAN and inside of it there is Managed VNET (we do not have any direct access to it for you)
+- You further can peer various VNETs to Managed VNET, as well as on-premise locations via S2S VPN or ER (and more depending on SKU)
+- 2 SKUs - Basic & Standard
     - Basic - only supports S2S VPN
-    - Standard - supports S2S VPN, P2P VPN, ER, VNET transitive, Multihub
-- Custom route tables can be added to restrict "any-to-any"
+    - Standard - supports S2S VPN, P2P VPN, ER, VNET transitive & Multihub routing (to connect to another region with VWAN)
+- Custom route tables can be added to restrict default "any-to-any"
 - 3rd party NVA (Network Virtual Appliances) can be added into managed VNET (e.g. Barracuda CloudGen)
 
 ## Load Balancing Solutions
@@ -270,48 +273,115 @@ Options to make publicly available services HA - various types of LB, choise dep
 
 **Load Balancers**
 
-| -            | Global | Regional            |
-|--------------|--------|---------------------|
-| L7 (http)    | -      | -                   |
-| L4 (tcp/udp) | -      | Azure Load Balancer |
+| -            | Global           | Regional            |
+|--------------|------------------|---------------------|
+| L7 (http)    | Azure Front door | Application Gateway |
+| L4 (tcp/udp) | Traffic Manager  | Azure Load Balancer |
 
 Various solutions from the table can be combined on a global or regional level.
 
-### Azure Load Balancer
+![image](./Images/LBHelpMeChoose.png)
+
+Documentation links
+[Load-balancing options](https://docs.microsoft.com/en-us/azure/architecture/guide/technology-choices/load-balancing-overview)
+[Azure Load Balancing Solutions: A guide to help you choose the correct option](https://devblogs.microsoft.com/premier-developer/azure-load-balancing-solutions-a-guide-to-help-you-choose-the-correct-option/)
+
+### Azure Load Balancer (regional, L4)
 
 - L4 - 5 tuples - SRC IP/PORT, DEST IP/PORT, PROTOCOL
-- Acts as front end, can be either INT or EXT
+- Acts as front end, can be either INT or EXT (either, not both at the same time)
 - Has rules which decide how traffic is distributed, depending on SKU
     - Basic SKU
-        - free
-        - no SLA
+        - free, no SLA
         - up to 300 targets from the same availability set or VM scale set
         - no AZ support
         - open by default (similar to basic public IP)
         - Basic LB used with Basic public IP
     - Standard SKU
-        - paid
-        - has SLA
+        - paid, has SLA
         - up to 1000 backend targets in the same VNET as LB
-        - can point to IPs or NICs (some resources don't have NICs - e.g. pods in AKS don't have their own NICs, but we can target them by IP as long as they are in the same VNET as LB)
+        - can point to NICs or IPs (some resources don't have NICs - e.g. pods in AKS don't have their own NICs, but we can target them by IP as long as they are in the same VNET as LB)
         - AZ support (can be zonal or zone-redundant)
         - locked down by default (similar to standard public IP)
+- Backend resource pools - has to be in the same VNET or the same Availability Set
 - Health probes are send to backend pools to ensure health of targets
-- Rule types for traffic distribution across bakced pool(s):
+- Rule types for traffic distribution across backend pool(s):
     - LB rule - hash based distribution using 5 tuples (SRC IP/PORT, DEST IP/PORT, PROTOCOL)
         - Stickenes can be configured, by default 5 tuples stickeness used, but can be 3 tuple (- PORT) or 2 tuple (- PORT, - PROTOCOL)
-    - NAT rule - no distribution just always directing to particular VM and PORT
-        - With standard SKU we can do outbount NAT rules = Source Network Address Translation (SNAT)
-- There is finite number of rules
-- Standard SKU allows to use HA ports
-- 
+    - NAT rule - no distribution just always directing to particular VM PORT
+        - With standard SKU we can do outbound NAT rules = Source Network Address Translation (SNAT)
+- There is a finite number of rules
+- Standard SKU allows to use HA ports (all flows) - it allows you don't create individual port rules anymore, instead it distributes flows over backen
+- Floating IP - sends front end IP to the backend, so that backend sees is as destination (as opposed to normally seeing its own IP there)
 
-### Azure App Gateway
+#### Azure load balancer HA ports
 
-### Azure Traffic Manager
+Azure Standard Load Balancer helps you load-balance all protocol flows on all ports simultaneously when you're using an internal Load Balancer via HA Ports.
 
-### Azure Front Door
+High availability (HA) ports is a type of load balancing rule that provides an easy way to load-balance all flows that arrive on all ports of an internal Standard Load Balancer. The load-balancing decision is made per flow. This action is based on the five-tuple connection: source IP address, source port, destination IP address, destination port, and protocol
+
+The HA ports load-balancing rules help you with critical scenarios, such as HA and scale for network virtual appliances (NVAs) inside virtual networks. The feature can also help when a large number of ports must be load-balanced.
+
+The HA ports load-balancing rules is configured when you set the front-end and back-end ports to 0 and the protocol to All. The internal load balancer resource then balances all TCP and UDP flows, regardless of port number.
+
+### Azure App Gateway (regional, L7)
+
+- Regional, L7
+- L7 (http, https, http2 ) = URL based routing, redirection (http to https, one site to another), SSL offload (decrypt and send further in unencrypted form, or re-encrypt and send on), URL rewrite, request rewrtite, cookie-based affinity
+- Support for connection draining
+- Web Application Firewall (WAF) - component to protect against standard attacks - OWASP (Open Web Applications Security Project) core rules
+- Gets deployed into VNET = NSGs can be applied
+- Front end IP - AAG always has a public IP, optionally can have private; public has to be present - it may be unused but you must have it always
+- You can't have AAG with private IP only, but you can lock down public
+- Listeners are further configure to liste on particular IP and port
+- At listeners level we can do SSL offload, assign certificates
+    - Basic listener
+        - Everything goes to the specific rule
+    - Multi-site
+        - Multiple-listener on the sampe IP & port
+        - Looks at incoming FQDN (with support of wildcards) to send traffic to different rule based on that
+- AAG uses rules
+    - Basic rule - port to specific rule
+    - Path based - based on part of the path route to different baclend pool
+    - Re-write (request, URL, header)
+- Backend pool can include on-prem via S2SVPN or ER
+- HTTP settings (affinitiy, encryption)
+- Different SKUs
+
+### Azure Traffic Manager (Global, L4)
+
+**Azure Traffic Manager** is a DNS-based traffic load balancer. This service allows you to distribute traffic to your public-facing applications across the global Azure regions. Traffic Manager also provides your public endpoints with high availability and quick responsiveness.
+
+- Global, L4
+- Adds anycast IP that can point to regional Azure LBs
+- DNS based - you create a global traffic manager name, in fron of it you create CNAME exposed to/accessed by users
+- Behind global traffic manager name are possible resolutions - FQDN names or IP addresses
+- Possible targets are: Azure end-points, FQDN, IP, nested (another traffic manager profile)
+- When you query name linked to global traffic manager it returns result based on different methods (supported targets vary per method)
+    - Performance - target based on the latency (closest to the client) - most used
+    - Priority - assign one target and backup targets in order of priority
+    - Weighted - distribute according to assigned weight
+    - Geographic - based on origing of DNS query
+    - Multivalue - only supports IPv6/4 end points, returns all healthy endpoins
+    - Subnet - maps subnet or sets of end-user address to specific endpoint
+- Limitation - DNS record TTL delay (5 mins) which slows down switching to different target in case of outage
+
+### Azure Front Door (Global, L7)
+
+- Uses massive MSFT backbone network and its points of presence. AFD adds anycast IP which is available at all PoP (can be behind WAF) and then you have targets behind it
+- L7: http, https, http2
+- User goes to anycast IP, then split TCP kicks in, which establish TCP and TLS to local PoP
+- You can do SSL offload on local PoP
 
 ## Network Security Groups and Application Security Groups
 
+## Service Endpoints
+
+## App Service Integrations
+
+## Azure Firewall
+
+## Network Monitoring
+
+## Summary
 
