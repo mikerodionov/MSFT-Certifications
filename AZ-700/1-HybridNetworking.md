@@ -4,7 +4,10 @@
 
 ### design a site-to-site VPN connection for high availability
 
+- VPN used to extend private internal networks/VNETS to remote locations (s2s) or users (P2S) providing traffic encryption which helps to avoid traffic sniffing or replay attacks; it is a tunneling protocol
+
 - VPN Gateway allows you to connect Azure with on-premise networks using S2S VPN creating encrypted tunnel between those
+- 2 VPN Gateways can be configured in active-active mode for HA (requires 2 or more VPN GW and public IPs)
 
 - Azure S2S VPN configuration steps outline:
   - Create and configure VNET GW and Local Network GW
@@ -68,6 +71,9 @@ Further reading:
 ### implement a VPN client configuration file
 ### diagnose and resolve client-side and authentication issues
 ## Design, implement, and manage Azure ExpressRoute
+
+- ER Global Reach - used to configure ER circuits beween on-premise locations connected to Azure in different regions so that Microsoft global backbone is used toroute traffic between locations.
+
 ### choose between provider and direct model (ExpressRoute Direct)
 ### design and implement Azure cross-region connectivity between multiple ExpressRoute locations
 ### select an appropriate ExpressRoute SKU and tier
@@ -86,3 +92,6 @@ Further reading:
 - Bidirectional Forwarding Detection (BFD) - can be used for link failure detection to ensure faster failover to the secondary link. BGP keep-alive and hold-time lead to link failure detection timings of up to 3 minutes between MSEE and customer edge routers. BFD reduces that to a few seconds.
 
 - When checking ER circuits verify that the Provider status (ER or Cloud Exchange) = Provisioned
+
+- BGP is a protocol which creates next-hop links beween autonomous systems (AS), BGP neighboors update each other on routing changes and use BGP keep-alive timer to keep track on their neighboors; lower BGP keep-alive value can configured but to improve failure detection but it will cause significant overhead on routers (BGP is resource-intensive protocol).
+- 
