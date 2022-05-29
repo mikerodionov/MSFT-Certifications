@@ -47,10 +47,17 @@ docker info
 curl -fsDL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
 # Post installation steps
 # Manage docker as a non root user
-sudo grroupadd docker
+sudo groupadd docker
 sudo usermod -aG docker $USER
 # Restart terminal
 ```
+```Bash
+# If you get error below
+docker: Got permission denied while trying to connect to the Docker daemon socket at unix:///var/run/docker.sock: Post "http://%2Fvar%2Frun%2Fdocker.sock/v1.24/containers/create": dial unix /var/run/docker.sock: connect: permission denied.
+# Run this
+sudo chmod 666 /var/run/docker.sock
+```
+
 
 ## Using Docker
 
@@ -112,3 +119,213 @@ docker commit IMAGE_MAME NEW_IMAGE_NAME
 ```
 
 ### Run processes in container
+
+- **docker run**
+    - starts a container by giving it a name and starting main process to run it
+    - containers stop when their process stops
+    - containers have names, if name is not provided it will be auto generated
+- **docker attach**
+    - detached containers
+    - interactive containers
+    - detach with CRTL+P, CTRL+Q
+    - docker ps
+    - docker attach container_name
+- **docker exec**
+    - starts another process in an existing container
+    - useful for debugging and administration
+    - can't add ports, volumes, etc.
+
+```Bash
+# --rm - run something in a container but not keep the container afterwards
+# -ti - terminal interactive
+# Command below will start a container and exit after command execution is done
+docker run --rm -ti ubuntu sleep 5
+# Running multiple commands after start
+docker run -ti ubuntu bash -c "sleep 3; echo all done"
+# Detached container - start container and let it go, -d = detached (start and leave it running in background)
+docker run -d -ti ubuntu bash
+# get name with docker ps, then connect using docker attach
+docker attach container_name
+# CTRL+P, CTRL+Q to detach from container (exit) but keep it running
+# Run bash in existing container
+docker exec -ti container_name bash
+```
+
+### Manage containers
+
+- docker logs
+    - keep the output of containers
+    - view with *docker logs container_name*
+    - don't let the output get too large
+- stopoing and removing containers
+    - docker kill container_name - stops container
+    - docker rm container_name - deletes container
+- resource constraints
+    - memory limits - docker run --memory
+    - CPU limits - docker run --cpu-shares or docker run --cpu-quota
+- recommendations
+    - don't let your containers fethch dependencies when they start - make containers to include dependencies
+    - don't leave important things in unnamed stopped containers
+
+
+```Bash
+# Run a terminal to look at password file
+docker run --name example -d ubuntu bash -c "cat /etc/passwd"
+# If you pass in command with typo you can see an error using docker logs
+docker logs container_name
+# Stop container
+docker kill container_name
+# Check last exited container
+docker ps -l
+# Delete container
+docker rm container_name
+# Delete all containers
+docker rm -f $(docker ps -a -q)
+# Limit container memory
+docker run --memory maximum_allowed_memory image_name command
+# Limit container CPU usage relative to other containers
+docker run --cpu-shares
+# Limit container CPU usage hard limit
+docker run --cpu-quota
+```
+
+### Exposing ports
+
+- Programs in containers are isolated from the interned by default
+- You can group your containers into "private" networks
+- You explicitly choose who can connect to whom
+
+- Expose ports to allow incoming connections
+- Private networks to connect between containers
+
+- Exposing a specific port
+    - Explicitly specifies the port inside the container and outside
+    - Exposes as many ports as you want
+    - Requires coordination between containers
+    - Makes it easy to find the exposed ports
+- Exposing ports dynamically
+    - the port inside the container is fixed
+    - leave off external port definition and docker will assign unused port
+    - this allows many containers running programs with fixed ports
+    - this is often used with a service discovery program/orchestration (e.g. Kubernetes)
+- Exposing UDP ports
+    - docker run -p host-port:container-port/protocol (tcp/udp)
+    - docker run -p 1234:1234/udp
+
+```Bash
+# Server receiving data from one server and sending it to another, publish 2 ports inside/outside
+# -p EXT_PORT:INT_PORT, i.e. HOST_PORT:CONTAINER_PORT
+docker run --rm -ti -p 45678:45678 -p 45679:45679 --name echo-server ubuntu bash
+# Omit EXT_PORT to have it dynamically assigned for you
+docker run --rm -ti -p 45678 -p 45679 --name echo-server ubuntu bash
+# View assigned ports
+docker port container_name
+# Inside of container
+apt update
+apt install netcat
+netcat -lp 45678 | netcat -lp 45679
+# Then in another terminal from host run command
+nc localhost 45678
+# Open one more terminal and run command
+nc localshost 45679
+# From terminal where you run nc localhost 45678 type in something and hit Enter, it will appear in another terminal where nc localshost 45679 is running
+# To connect from container to host on a Mac you can use special name
+nc host.docker.internal 45678
+# On Win/Ubuntu use IP or DNS of host machine
+# Example with dynamic external port and UDP
+docker run --rm -ti -p 45678/udp --name echo-server ubuntu bash
+# Inside of the container
+netcat -ulp 45678
+# In another Terminal window get dynamic port and run netcat over UDP to send data into container app
+docker port container_name
+netcat -u localhost 49153
+```
+
+### Containers Networking - Connecting between containers
+
+- Docker host has its own network
+- Containers use virtual network
+    - you can connect from one container to another over vnet > host net > vnet (not efficient)
+    - or you can connect between containers directly by placing them into the same vnet
+- Default Docker networks
+    - bridge - used by default
+    - host - no network isolation isolation
+    - none - no netwokring
+- We can create new networks & assign them to containers
+    - containers within the same network have connectivity between them
+
+```Bash
+# List docker networks, default networks are bridge, host, none
+docker network ls
+# Create new network
+docker network create network_name
+# Assign network to a newly created container, put 2 containers on the same network
+# docker run --rm -ti --net network_name --name container_name ubuntu bash
+# docker run --rm -ti --net network_name --name container_name2 ubuntu bash
+docker network create net1
+docker run --rm -ti --net net1 --name srv1 ubuntu bash
+docker run --rm -ti --net net1 --name srv2 ubuntu bash
+# We can assign additional network(s) to container
+docker network connect network_name container_name
+```
+
+### Legacy linking
+
+- links all ports, but only one way (from all ports on one machine to all ports on the other, but only in one direction)
+- secrets on the linked machine (e.g. env variables with passwords) are shared too and only the one way (i.e. from linked machine towards any machine it is linked too)
+- depends on startup order
+- restarting containers sometimes break the links
+
+- not recommended to use, except for some scenarios
+
+```Bash
+# Create container with env var with secret
+docker run --rm -ti -e SECRET=secretpassword --name test-container ubuntu bash
+# Creare another one and link it to the first
+docker run --rm -ti --link test-container -e SECRET2=secretpassword2 --name test-container2 ubuntu bash
+# Now you can test with netcat that connection from linked server (test-container2) to test-container works but not the other way round
+# on test-container
+netcat -lp 1234
+# on test-container2 run command below and try sending messages - it will work
+netcat test-container 1234
+# try the other way rount - it won't work, note that you can use any ports but links are uni-directional
+# you will also see that ENV VAR was copied from the linked server, you linked test-container to test-container2
+# test-container2 will see SECRET env var as TEST_CONTAINER_ENV_VAR_SECRET, you can verify that with command below
+env | grep SECRET
+```
+
+### Images
+
+- Listing images
+    - list downloaded images - docker images
+- Tagging images
+    - tagging give images names
+    - *docker commit* tags images for you
+    - name structure:
+        - registry.example.com:port/organization/image-name:version-tag
+        - organization/image-name is often enough
+- Getting images
+    - docker pull
+    - run automatically by docker run
+    - useful for offline work
+    - opposite: docker push
+- Cleaning up
+    - images can accumulate quickly
+        docker rmi image-name:tag
+        docker rmi image-id
+
+```Bash
+# List downloaded images
+docker images
+# commit tags images
+docker commit CONTAINER_ID CONTAINER_TAG
+# Removing image
+docker rmi image-name:tag
+docker rmi image-id
+```
+
+### Volumes
+
+
+
+### Docker registries
