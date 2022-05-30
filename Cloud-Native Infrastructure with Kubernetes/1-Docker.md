@@ -248,7 +248,7 @@ netcat -u localhost 49153
     - you can connect from one container to another over vnet > host net > vnet (not efficient)
     - or you can connect between containers directly by placing them into the same vnet
 - Default Docker networks
-    - bridge - used by default
+    - bridge - used by default by newly created containers 
     - host - no network isolation isolation
     - none - no netwokring
 - We can create new networks & assign them to containers
@@ -326,6 +326,69 @@ docker rmi image-id
 
 ### Volumes
 
+- Virtual disks to store and share data to share data between containers and/or containers and host
+- Two main varieties
+    - **Persistent** - data stays after container termination
+    - **Ephemeral** - exists as long as used by container
+- Volumes are not part of images
 
+- Sharing data with the host
+    - "Shared folders" with the host
+    - Sharing a "single file" into a container
+    - File must exist before you start the container
+
+```Bash
+# Mount host folder as /shared-folder in the container
+docker run -ti -v ~/DockerLab:/shared-folder ubuntu bash
+# You can share specific file with the container the same way (make sure it exists before container start)
+```
+
+- Sharing data between containers
+    - volumes-from
+    - shared discs that exist only as long as they are being used
+
+```Bash
+# Creating folder/volume not shared with host
+docker run -ti -v /shared-data ubuntu bash
+# Next you can start another container and connect this volume indicating folder/volume hosting container name
+docker run -ti --volumes-from container_name ubuntu bash
+# Data persist even if you exist first host container untill there is at least one container using the folder
+```
 
 ### Docker registries
+
+- Registries manage and distribute images
+- Docker (the company) offers these for free
+- You can run your own registry
+
+- Finding images
+    - docker search command
+    - search on hub.docker.com
+
+- Best practices
+    - do not push images with sensitive information/passwords
+    - clean up your images regularly
+    - make sure to publish to registry images you may need in the future/those which you really need to keep
+    - be conscious of how much you are trusting the containers you fetch - trust but verify
+
+
+```Bash
+# Search image by name
+docker search ubuntu
+# To connect to Docker Hub & push images
+docker login
+docker pull image_name:tag
+docker tag image_name:tag registry/new_image_name:new_tag
+docker push registry/new_image_name:new_tag
+```
+
+## Building Docker Images
+
+### Dockerfiles
+
+- a small "program" to create an image
+- you run this program with
+    ```Bash
+    # -t = tag, make sure to put . in the end = current dir/location of your dockerfile
+    docker build -t name .
+    ```
