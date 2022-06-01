@@ -391,4 +391,66 @@ docker push registry/new_image_name:new_tag
     ```Bash
     # -t = tag, make sure to put . in the end = current dir/location of your dockerfile
     docker build -t name .
-    ```
+  ```
+- when it finishes, the result will be in your local registry
+
+#### Producing the next image with each step
+
+- each line takes the image from the previous line and makes another image
+- the previous image is unchanged it just used as a starting point to make a new one
+- it does not edit the state from the previous line
+- you don't want large files to span lines or your image will be huge
+
+[Dockerfile reference](https://docs.docker.com/engine/reference/builder/)
+
+#### Caching with each step
+
+- watch the build output for "using cache" - docker build skips lines if there were no changes since previous run
+- Docker skips lines that have not changed since the last build
+- if your first line is "downlad the latest file", it may not always run
+- caching saves a lot of time
+- the parts that change the most belong at the end of the Dockerfile
+
+#### Docker files are not shell scripts
+
+- Dockerfiles look like shell scripts - design desigion to make it look more familiar
+- Dockerfiles are **not** shell scripts
+- Processes you start on one line will not be running on the next line - each line = container starts, gets shutdown and saved to an image (= all process in it are terminated)
+- Environment variables do persist across lines (as those got saved inside of image)
+    - If you use the ENV command - each line is its own call to docker run
+
+## Building Dockerfiles
+
+### The most basic Dockerfile
+
+Put content below into file named Dockerfile:
+
+```Bash
+FROM busybox
+RUN echo "building simple docker image"
+CMD echo "Hello Container"
+```
+
+Build container image from this Dockerfile:
+
+```Bash
+docker build -t image_name .
+# Once image created you can see it or run a container using it
+docker images image_name
+docker run --rm image_name
+```
+
+### Installing a program with Docker Build
+
+Dockerfile:
+
+```Bash
+FROM debian:sid
+RUN apt-get -y update
+RUN apt-ge install nano
+CMD ["bin/nano", "/tmp/notes"]
+```
+
+### Adding a file through Docker Build
+
+## Dockerfile syntax
