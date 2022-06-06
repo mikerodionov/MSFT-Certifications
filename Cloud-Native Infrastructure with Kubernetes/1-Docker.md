@@ -396,7 +396,7 @@ docker push registry/new_image_name:new_tag
 
 #### Producing the next image with each step
 
-- each line takes the image from the previous line and makes another image
+- each line takes the image from the previous line and makes another image; **each line of a Docker file makes a new, independent image based on the previous line's image**
 - the previous image is unchanged it just used as a starting point to make a new one
 - it does not edit the state from the previous line
 - you don't want large files to span lines or your image will be huge
@@ -409,7 +409,7 @@ docker push registry/new_image_name:new_tag
 - Docker skips lines that have not changed since the last build
 - if your first line is "downlad the latest file", it may not always run
 - caching saves a lot of time
-- the parts that change the most belong at the end of the Dockerfile
+- the parts that change the most belong at the end of the Dockerfile; **include the most changed parts of code at the end of the Dockerfile so the parts befroe them do not need to be redone every time you change this part**
 
 #### Docker files are not shell scripts
 
@@ -419,9 +419,9 @@ docker push registry/new_image_name:new_tag
 - Environment variables do persist across lines (as those got saved inside of image)
     - If you use the ENV command - each line is its own call to docker run
 
-## Building Dockerfiles
+### Building Dockerfiles
 
-### The most basic Dockerfile
+#### The most basic Dockerfile
 
 Put content below into file named Dockerfile:
 
@@ -434,23 +434,316 @@ CMD echo "Hello Container"
 Build container image from this Dockerfile:
 
 ```Bash
+# -t = one of the foreground modes - allocate pseudo-tty, TTY is what the most command line executables expect
 docker build -t image_name .
 # Once image created you can see it or run a container using it
 docker images image_name
 docker run --rm image_name
 ```
 
-### Installing a program with Docker Build
+#### Installing a program with Docker Build
 
 Dockerfile:
 
 ```Bash
 FROM debian:sid
 RUN apt-get -y update
-RUN apt-ge install nano
+RUN apt-get -y install nano 
 CMD ["bin/nano", "/tmp/notes"]
 ```
 
-### Adding a file through Docker Build
+Installs nano and opens it on container run
 
-## Dockerfile syntax
+```Bash
+docker build -t example/name .
+# Run and remove afterwards (rm), command which will run are defined in image
+docker run --rn -ti example/name
+```
+
+#### Adding a file through Docker Build, based on previously created image (example above)
+
+```Bash
+FROM example/name
+ADD notes.txt /notes.txt
+CMD ["bin/nano", "/notes.txt"]
+```
+
+```Bash
+# Create notes.txt with content before running docker build
+# Build container
+docker build -t example/name2 .
+# Run and remove
+docker run -ti --rm example/name2
+```
+
+### Dockerfile syntax
+
+#### FROM statement
+
+- Which image to download and start from
+- Must be the first command in a Dockerfile
+    FROM java:8
+
+#### MAINTAINER statement
+
+- Defines the author of the Dockerfile
+    MAINTAINERFirstname Lastname <email@domain.com>
+
+#### RUN statement
+
+- Runs the command line, waits for it to finish, and saves the result
+    RUN unzip install.zip /opt/install
+    RUN echo hello world
+
+#### ADD statement
+
+- Adds local files
+    ADD run.sh /run.sh
+- Adds the contents of tar archives to directory in a container
+    ADD project.tar.gz /install/
+- Download from URL
+    ADD https://site.com/downloads/project/rpm /project/
+
+#### ENV statement
+
+- Sets environment variables
+- Both during the build and when running the result (saved in resulting image)
+    ENV DB_HOST=db.domain.com
+    ENV DB_PORT=5432
+
+#### ENTRYPOINT and CMD statements
+
+- ENTRYPOINT specifies the start of the command to run (will be run by default, and whatever you type after *docker run image_name* it will be treated as an argument to it)
+- CMD specifies the whole command to run (and if you type something after *docker run image_name* will override this/will be run instead as a command)
+- If you have both ENTRYPOINT and CMD, they are combined together
+- If your container acts like a CLI program, you can use ENTRYPOINT
+- If you are unsure, you can use CMD
+
+#### Shell form VS Exec form
+
+- ENTRYPOINT RUN and CMD can use either form
+- Shell form looks like normal command input in shell
+    *nano notes.txt*
+- Exec form looks as follows (pay attention to coma) - runs command directly not via shell call first (a bit more efficient)
+    *["bin/nano", "/notes.txt"]*
+
+#### EXPOSE statement
+
+- Maps a port into container
+    EXPOSE 8080
+
+#### VOLUME statement
+
+- Defines shared or ephemeral volumes - depending on number of arguments provided
+    - With 2 arguments we map host path to container path
+        VOLUME ["/host/path/" "/container/path/"]
+    - With 1 argument it creates volume that can be inherited by containers
+        VOLUME ["/shared/data"]
+- Avoid defining shared folders in Dockerfiles (as it creates dependency on Docker host containing folder contents)
+
+#### WORKDIR statement
+
+- Sets the directory the container starts in (for the remainder of a Docker file and for the resulting container)
+    WORKDIR /install/
+
+#### USER statement
+
+- Sets the user the container will run as (useful when shared directory is used which can be source of fixed name)
+    USER john
+    USER 1000
+
+Refer to [Dockerfile reference](https://docs.docker.com/engine/reference/builder/) for more details
+
+### Multi-project Docker files
+
+- Completeness (self-contained container) VS minimalism (small container)
+- Multi-stage builds feature
+
+```Bash
+FROM ubuntu:22.04
+RUN apt-get update
+RUN apt-get -y install curl
+RUN curl https://google.com | wc -c > google-size
+ENTRYPOINT echo goolge has size; cat google-size
+```
+
+In the image above we calculate number of words on Google homepage
+
+```Bash
+# Build an image
+docker build -t google-size .
+# Run an image
+docker run t google-size
+# Check imge size - it will be 100+ MB
+docker images
+```
+
+We can split image in parts, re-run docker build and see an image size of around 5 MB
+
+```Bash
+FROM ubuntu:22.04 as builder
+RUN apt-get update
+RUN apt-get -y install curl
+RUN curl https://google.com | wc -c > google-size
+
+FROM alpine
+COPY --from=builder /google-size /google-size
+ENTRYPOINT echo goolge has size; cat google-size
+```
+
+### Avoid golden images problems
+
+- Include installers in your project (built-in your dependencies into base image)
+- Have a canonical build that builds everything completely from scratch
+- Tag your builds with the git hash of the code that built it (do not make changes outside of code control)
+- Use small base images, such as Alpine
+- Build images you share publicly from Dockerfiles, always
+- Do not leave passwords in layers, delete files in the same step
+
+## Under the hood
+
+### Docker the program
+
+#### Kernel
+
+- Kernel runs directly on top of hardware and interacts with it (responds to messages from the hardware)
+- Starts and schedules programs
+- Controls and organizes storage
+- Passes messages between programs
+- Allocates resources - memory, CPU, network etc.
+- Create container by Docker configuring the kernel
+
+#### What Docker does
+
+- Program written in Go - a statically typed, compiled programming language designed at Google
+- Manages some kernel features and uses them to provide containers abstraction
+    - Uses "cgroups" to contain processes
+    - Uses "namespaces" to contain networks
+    - Uses "copy-on-write" filesystems to build images
+- Features mentioned above were used for years before Docker - Docker just made it easy and popular to use
+
+#### What Docker really does :)
+
+- Makes scripting distributed systems relatively easy
+
+#### Docker control socket
+
+- Docker is two programs - a client and a server
+- The server receives commands over a socket (either over a network socker or through a file socket when both components are on the same machine)
+- The client can even run inside Docker itself
+
+- Running Docker Locally
+    Docker client program <-> Socket <-> Docker server program {Container 1, Container 2}
+- Running the client inside Docker
+    Docker server program <-> Socket <-> Docker container {Docker client program}
+
+```Bash
+ls /var/run/docker.sock
+/var/run/docker.sock
+# Run Docker client inside of container and give it access to the Docker control socket on the host
+docker run -ti --rm -v /var/run/docker.sock:/var/run/docker.sock docker sh
+# Inside of container's Docker shell
+docker info
+# Start another container from a client within a container - this is not Docker-in-Docker, it is Docker client within a container controlling a server/host that is outside of this container
+docker run -ti --rm ubuntu bash
+# Check Ubuntu version inside of container
+cat /etc/lsb-release
+```
+
+### Networking and namespaces
+
+#### Networking core layers/parts
+
+- Ethernet layer - moves frames on a wire or Wi-Fi
+- IP layer - moves packets on a local network/between networks
+- Routing - forwards packets between networks
+- Ports - address particular programs on a computer
+
+#### Bridging
+
+- Docker uses bridges to create virtual networks in your computer
+- Bridges are software switches
+- They control ethernet layer
+- To look at Docker bridges we need a system with brctrl (Bridge Control)
+- To turn off network isolation between container and host network use --net=host switch
+    *docker run --net=host options image-name command*
+
+```Bash
+# To look at Docker bridges we need a system with brctrl (Bridge Control)
+# --net-host - gives containers full access to the host networking stack
+docker run -ti --net=host ubuntu:22.04 bash
+apt-get update && apt-get install bridge-utils
+# View system's bridges
+brctl show
+# Add new network/bridge
+docker network create new-net1
+```
+
+#### Routing
+
+- Creates firewall rules (iptables) that controls packets movement between networks
+- NAT (Network Address Translation)
+    - Change the source address on the way out
+    - Change the destination address on the way back in
+    - sudo iptables -n -L -t nat
+
+```Bash
+# Run container with full control over host net and host
+docker run -ti --rm --net=host --privileged=true ubuntu bash
+# Inside of the container
+apt-get update && apt-get install -y iptables
+iptables-legacy -n -L -t nat
+# If we then create new container with port mapping we can see new nat rules added rerunning the command above
+docker run -ti --rm -p 8080:8080 ubuntu bash
+iptables-legacy -n -L -t nat
+# Exposing ports in Docker = port forwarding at the networking layer 
+```
+#### Namespaces
+
+- Namespaces allow processes to be attached to private network segments
+- These private networks are bridged into a shared network with the rest of the containers
+- Containers have virtual NICs
+- Containers have their own copy of a full Linux networking stack
+
+### Processes and cgroups
+
+#### Primer on Linux Processes
+
+- Process come from other processes, i.e. have parent-child relationships
+- When a child process exists, it returns an exit code to its parent
+- Process zero is a special process called init, this is the process which starts the rest
+- In Docker, your container starts with an init process and disappears when this process exits
+
+```Bash
+# Start new container
+docker run -ti --rm --name hello-container ubuntu bash
+# Use docker inspect to inspect state of container init process
+docker inspect --format '{{.State.Pid}}' hello-container
+## Start privileged container
+docker run -ti --privileged=true --pid=host ubuntu bash
+```
+
+#### Resource limiting
+
+- Scheduling CPU time
+- Memory allocation limits
+- Inherited limitations and quotas
+- You can't exceed the limits by starting more processes
+
+### Storage
+
+#### Unix storage in brief
+
+Unix storage system layers
+- Actual stroage device
+- Logical storage devices
+- Filesystems
+- FUSE filesystems and network filesystems (programs emulating filesystems)
+
+#### Docker COWs
+
+- COW - Copy on write
+- Base image + data on top of it presented as the same although data is just layered on top of base image
+
+
+## Orchestration - Building systems with  Docker
