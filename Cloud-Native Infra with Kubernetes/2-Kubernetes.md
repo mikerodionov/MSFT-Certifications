@@ -82,6 +82,7 @@ Most popular open source containers orchestrator.
 As adoption of containers got really large scale it created demand for orchestration solutions.
 
 Required orchestration features:
+
 - Provision hosts
 - Instantiate containers on a host
 - Restart failing containers
@@ -110,12 +111,135 @@ Pokemon Go is the largest Kubernetes deployment on the Google container engine.
 "Kubernetes is an open source project that enables software teams of all sizes, from a small startup to a Fortune 100 company, to automate deploying, scaling, and managing applications on a group or cluster of server machines." Joe Beda
 "These applications can include everything from internal-facing web applications like a content management system to marquee web propertees like Gmail to big data processing" Joe Beda
 
-#### Multi-Host Container Scheduling
-
-- Done by the kube-scheduler
-
+- **Multi-Host Container Scheduling**
+  - Done by the kube-scheduler
+  - Assigns pods to nodes at runtime
+  - Checks resources, QoS, policies, and user specifications before scheduling
+- **Scalability and availability**
+  - Kubernetes master can be deployed in a highly available configuration
+  - Multi-region deployments available
+- **Scalability (v1.17)**
+  - Supports 5,000 node clusters
+  - 150,000 total pods
+  - Max 100 pods per node
+  - Pods can be horizontally scaled via API
+- **Flexibility and modularization**
+  - Plug-and-play architecture
+  - Extend architecture when needed
+  - Add-ons: network drivers, service discovery, container runtime, visualization, and command
+- **Registration**
+  - Nodes register themselves with master seamlessly
+- **Service discovery**
+  - Automatic detection of services and endpoints via DNS or environment variables
+- **Persistent storage**
+  - Pods can use persistent volumes to store data
+  - Data retained across pod restarts and crashes
+- **Application upgrades and downgrades**
+  - Upgrades: rolling updates supported
+  - Downgrades: rollbacks are supported
+- **Maintenance**
+  - Features are backward compatible
+  - APIs are versioned
+  - Turn off/on host during maintenance (unschedulable)
+- **Logging and monitoring**
+  - Application monitoring built-in
+    - TCP, HTTP, or container execution health check
+  - Node health check
+    - Failures monitored by node controller
+  - Kubernetes status
+    - Add-ons: Heapster and cAdvisor
+  - Logging framework
+    - In place or extensible
+- **Secrets Management**
+  - Sensitive data is a first-class citizen
+  - Mounted as data volumes or environment variables
+  - Specific to namespaces
+- **Community**
+  - Governed by CNC
+  - Good docs
+  - [KubeCon](https://events.linuxfoundation.org/)
+  - [Meetups](https://www.meetup.com/topics/kubernetes/)
+  - [Slack](https://kubernetes.slack.com), further divided into SIGs
 
 ### Other implementations
 
+Major players in container orchestration
+
+- Kubernetes
+- Docker Swarm
+- Rancher
+- Mesos
+- Nomad
+
+Cloud-specific options
+
+- Amazon EC2 Container Service
+- Google Anthos
+
+#### Mesos
+
+- Written in C++, APIs in Java, C++, Python
+- Oldest, most stable tool
+- Distributed kernel
+- Marathon framework to schedule and execute tasks
+- More complicated architecture than Swarm
+- Typical Mesos users
+  - Large enterprises
+  - Projects that require lots of compute (e.g. big data) or task-oriented workloads
+  - Driven by devs
+  - Needs an ops team to manage
+
+#### Rancher
+
+- Full stack container management platform
+- Install and manage Kubernetes clusters
+- Early Docker ecosystem player
+- Great UI and API to interact with clusters
+- Enterprise support
+- Typical Rancher users
+  - Small teams to enterprises
+  - Support organizations and teams out of the box
+  - Nice UI & APIs
+  - Easy to manage infra effectively
+
+A lot of enterprises joined CNCF, which backs Kubernetes.
+
+#### When to go Serverless
+
+- Consider serverless tech when
+  - Starting to build your infra from scratch
+  - Running your infra in the cloud
+
 ## Kubernetes Terminology
+
+### Kubernetes Cluster Architecture
+
+A lot of boxes :)
+
+#### Master node
+
+- Overall management of K8s cluster, includes
+  - The API Server - frontend for K8s control plane
+  - Scheduler - watches created pods without nodes assigned yet and assign them to run on specific node
+  - Controller Manager - runs controllers - background threads that run tasks in a cluster
+    - Nodes Controller - worker states
+    - Replication Controller - maintains correct number of pods
+    - End-point controller - joins services and pods together
+    - Service account and token controllers - handle access management
+  - etcd - simple distributed key-value store - K8s cluster data store (job scheduling info, Pod details, stage information, etc.)
+
+#### kubectl
+
+- CLI client to interact with master node/API server
+- cubeconfig file contains server and authentication infor to access the API server
+
+#### Worker nodes
+
+- kubelet - agents that communicates back to master node/API server
+- Docker - runs container on the node, alternate container platforms can be used
+  - Pods - pod is a smallest deployment unit in Kubernetes
+    - containers
+- kube-proxy - network proxy & LB for the service on a single worker node, performs network routing and connection forwarding
+
+### Nodes and pods - basic building blocks
 
