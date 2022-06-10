@@ -243,3 +243,189 @@ A lot of boxes :)
 
 ### Nodes and pods - basic building blocks
 
+#### Kubernetes Cluster
+
+- Nodes
+  - kubelet
+  - Docker
+- Master
+- Node Processes
+  - kubelet
+  - Docker
+
+#### Node
+
+Node - serves as a worker machine in a K8s cluster. One important thing to note is that the node can be a physical computer or a VM.
+
+Node Requirements
+
+- A kubelet running
+- Container tooling/runtime like Docker
+- A kube-proxy process running
+- Supervisord - to restart components
+
+For production use cases it is typically recommended to have at least 3 node cluster.
+
+#### Minikube
+
+Lightweight Kubernetes implementation that creates a VM on your local machine and deploys a simple cluster containing only one node. Good for learning/testing.
+
+#### Pods
+
+**Pod** - the simplest unit that you can interact with. You can create, deploy, and delete pods, and it **represents one running process on your cluster**.
+
+Inside of the pod:
+
+- Your Docker app container(s)
+- Storage resources
+- Unique network IP
+- Options that govern how the container(s) should run
+
+Pod represents one single unit of deployment, a single instance of an application in Kubernetes which is tightly coupled and shares resources.
+
+Pods are
+
+- Ephemeral, disposable
+- Never self-heal, and not restarted by the scheduler by itself
+- Never create pods just by themselves
+- Always use higher-level constructs to manage pods (controllers), i.e. do not use pod directly, use a controller instead
+
+Pod lifecycle/states
+
+- Pending - pod accepted by Kunernetes system, but container has not been created yet
+- Running - pod has been scheduled on a node, and all of its containers are created
+- Succeeded - all the containers in the pod had exited with 0 exit code (= successful execution/no restart)
+- Failed - all containers in the pod had exited and at least one container had failed and returned non 0 exit code
+- CrashLoopBackOff - container fails to start and Kubernetes keep trying to restart the pod
+
+### Controllers: Deployments, ReplicaSets and Services
+
+#### Benefits of Controllers
+
+- Application reliability - by running multiple instances of the app
+- Scaling
+- Load balancing
+
+#### Kinds of controllers
+
+- ReplicaSets - ensures that a specified number of replicas for a pod are running at all times, used within deployment
+- Deployments - provides declarative updates for pods and ReplicaSets using description of desired deployment state in a YAML file, defined to create new ReplicaSets or replace existing ones with new (most frequently created)
+- DaemonSets - ensure that all nodes run a copy of a specific pod
+- Jobs - supervisor process for pods carrying out batch jobs
+- Services - allow the communication of one set of deployments with another
+
+Deployment manages a ReplicaSet, ReplicaSet manages a pod.
+When you deploy a new deployment config a new ReplicaSet is created, but keeping old ReplicaSet to allow for rollback.
+
+#### Deployment Controller use cases
+
+- Pod management - running a ReplicaSet allows us to deploy a number of pods, and check their status as a single unit
+- Scaling a Replica set - scales out the pods, and allows for the deployment to handle more traffic
+- Pause and Resume - used with larger changesets; pause deployment, make changes, resume deployment
+- Status - deployment status is an easy way to check the health of pods, and identify issues
+
+#### Replication Controller
+
+- Early implementation of deployments and ReplicaSets
+- Use deployments and ReplicaSets instead
+
+#### DaemonSets
+
+- DaemoSets ensure that all nodes run a copy of a specific pod
+- As nodes are added or removed from the cluster, a DaemonSet will add or remove the required pods
+- Deleting DaemonSets will also clean up all the pods that it created
+- Typical DaemonSets use case - run a single log aggregator or monitoring agent on a node
+
+#### Jobs
+
+- Supervisor process for pods carrying out batch jobs
+- Run individual processes that run once and complete successfully
+
+#### Services
+
+- Allow the communication of one set of deployments with another
+- Use a service to get pods in 2 deployments to talk to each other (best practice) - ensures the same IP which deployment will be using to connect to another deployment - way better than connecting over changing back end pod IP
+  - Frontend Pod > Backend Service > Backend Pod(s)
+- Once again: service provides unchangin IP
+
+#### Kinds of services
+
+- Internal - IP is only reachable within the cluster (cluster IP)
+- External - endpoint available through node IP:port (NodePort)
+- Load balancer - exposes application to the internet with a load balancer (available with a cloud provider)
+
+### Labels, selectors, and namespaces
+
+Used to annotate and organize applications to simplify life of Kubernetes operators.
+
+#### Labels
+
+Labels are key/value pairs that are attached to objects like pods, services, and deployments. Lavels are for users of Kubernetes to identify attributes for objects.
+Labels can be added at deployment time or added/changed at any time.
+Label keys are unique per object.
+
+Labels examples:
+
+"release": "stable", "release" : "canary"
+"environment" : "dev", "environment" : "qa", "environment" : "production"
+"tier" : "frontend", "tier" : "backend", "tier" : "cache"
+
+- Think about how your environment looks like, and create a labeling hierarchy for it.
+
+#### Labels and Selectors
+
+- Labels used with selectors are more powerful feature
+- Label selectors allow you to identify a set of objects
+
+- Selector types
+  - Equality-based
+    - = Two labells pr values of labels should be equal
+    - != = Two labells pr values of labels should not be equal
+  - Set-based
+    - IN - A value shoud be inside of a set of defined values
+    - NOTIN - A value shoud not be inside of a set of defined values
+    - EXISTS - Determines whether a label exists or not
+- Labels and label selectors are typically used iwth kubectl
+
+#### Namespaces
+
+- Allow to have multiple virtual clusters bakced by the same physical cluster
+- Great for large enterprises
+- Allows teams to access resources, with accountability
+- Great way to divide cluster resources between users
+- Provides scope for names - names must be unique in the namespace
+- Default namespace created when you launch Kubernetes
+- Objects places in default namespaces if other not specified
+- Newer applications install their resources in a different namespace (do not use default one)
+
+### Kubelet and kube-proxy
+
+#### Kubelet
+
+- The Kubelet is the Kubernetes node agent that runs on each node
+- Communicates with an API server to see if pods have been assigned to nodes
+- Executes pod containers via a container engine
+- Mounts and runs pod volumes and secrets
+- Executes health checks to identify pod/node status
+
+#### Kubelet and Podspec
+
+- Podspec - YAML file that describes a pod
+- The kubelet takes a set of podspecs that are provided by the kube-api server and ensures that the containers described in  those podspecs are running and healthy
+- Kubelet only manages containers that were created by the API server - not any container running on the node
+- Kubelet can be managed without an API server via HTTP endpoint or a file
+
+#### kube-proxy - the network proxy
+
+- Process that runs on all worker nodes
+- Reflects services as defined on each node, and can do simple network stream or round-robin forwarding across a set of backends
+- Service cluster IPs and ports are currently found through Docker --link copmpatible environment variables specifying ports opened by the service proxy
+
+#### 3 modes of kube-proxy
+
+- User space mode - the most common mode
+- Iptables mode
+- Ipvs mode (alpha feature)
+
+These modes are important because
+-
