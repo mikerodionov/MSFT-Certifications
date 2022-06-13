@@ -1134,6 +1134,8 @@ Labels can be used with any Kubernetes entity - pods, deployments, replicasets, 
 
 ### Application health checks
 
+The **readinessProbe** detects when a container can accept traffic, and the **livenessProbe** checks whether the container is alive and running.
+
 App health check YAML
 
 ```yaml
@@ -1291,8 +1293,255 @@ kubectl describe po helloworld-deployment-with-bad-readiness-probe-6cb6cd4bf4-wf
 
 Upgrading deployment from one version to another
 
+Rolling updates YAML which deploys navbar-service
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: navbar-deployment
+spec:
+  selector:
+    matchLabels:
+      app: helloworld
+  replicas: 3 # tells deployment to run 3 pods matching the template
+  template: # create pods using pod definition in this template
+    metadata:
+      labels:
+        app: helloworld
+    spec:
+      containers:
+      - name: helloworld
+        image: karthequian/helloworld
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: navbar-service
+spec:
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  type: NodePort
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: helloworld
+```
+
+```Bash
+# --record - records rollout history
+kubectl create -f helloworld-black.yaml --record
+minikube service --all
+```
+
+Made changes to deploymen
+
+```Bash
+kubectl set image deployment/navbar-deployment helloworld=karthequian/helloworld:blue
+# Check that new image/version was applied
+kubectl get deployments -o wide
+# Also check for a change in web browser
+# Check replicasets
+kubectl get rs
+kubectl get pods
+# When we deploy with a new image new replicaset gets created.
+# We can now check rollout history - to see 2 revisions
+kubectl rollout history deployment/navbar-deployment
+# We can rollback to specific version
+kubectl rollout undo deployment/navbar-deployment
+```
+
 ### Basic troubleshooting techniques
+
+```Bash
+# Check for AVAILABLE status in deployment
+kubectl get deployments
+# Check for STATUS in pods
+kubectl get pods
+# Use describe deployment and look at events
+kubectl describe deployment bad-helloworld-deployment
+# Use describe pod and look at events
+kubectl describe pod pod-name
+# Check pod logs
+kubectl logs pod-name
+# Exec into pod and pipe it into /bin/bash shell
+kubectl exec -it pod-name /bin/bash
+# inside container ps -ef etc.
+# if you have multiple containers you can use c flag
+# -c, --container='' - Container name. If omitted, use the kubectl.kubernetes.io/default-container annotation for selecting the container to be attached or the first container in the pod will be chosen
+kubectl exec -it pod-name /bin/bash -c helloworld /bin/bash
+```
 
 ## Kubernetes 201
 
 ### More complex example
+
+[Example: Deploying PHP Guestbook application with Redis](https://kubernetes.io/docs/tutorials/stateless-application/guestbook/)
+
+```yaml
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: redis-master
+  labels:
+    app: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+      role: master
+      tier: backend
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: master
+        tier: backend
+    spec:
+      containers:
+      - name: master
+        image: k8s.gcr.io/redis:e2e  # or just image: redis
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-master
+  labels:
+    app: redis
+    role: master
+    tier: backend
+spec:
+  ports:
+  - port: 6379
+    targetPort: 6379
+  selector:
+    app: redis
+    role: master
+    tier: backend
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: redis-slave
+  labels:
+    app: redis
+spec:
+  selector:
+    matchLabels:
+      app: redis
+      role: slave
+      tier: backend
+  replicas: 2
+  template:
+    metadata:
+      labels:
+        app: redis
+        role: slave
+        tier: backend
+    spec:
+      containers:
+      - name: slave
+        image: gcr.io/google_samples/gb-redisslave:v3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+          # Using `GET_HOSTS_FROM=dns` requires your cluster to
+          # provide a dns service. As of Kubernetes 1.3, DNS is a built-in
+          # service launched automatically. However, if the cluster you are using
+          # does not have a built-in DNS service, you can instead
+          # access an environment variable to find the master
+          # service's host. To do so, comment out the 'value: dns' line above, and
+          # uncomment the line below:
+          # value: env
+        ports:
+        - containerPort: 6379
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-slave
+  labels:
+    app: redis
+    role: slave
+    tier: backend
+spec:
+  ports:
+  - port: 6379
+  selector:
+    app: redis
+    role: slave
+    tier: backend
+---
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+spec:
+  selector:
+    matchLabels:
+      app: guestbook
+      tier: frontend
+  replicas: 3
+  template:
+    metadata:
+      labels:
+        app: guestbook
+        tier: frontend
+    spec:
+      containers:
+      - name: php-redis
+        image: gcr.io/google-samples/gb-frontend:v4
+        resources:
+          requests:
+            cpu: 100m
+            memory: 100Mi
+        env:
+        - name: GET_HOSTS_FROM
+          value: dns
+          # Using `GET_HOSTS_FROM=dns` requires your cluster to
+          # provide a dns service. As of Kubernetes 1.3, DNS is a built-in
+          # service launched automatically. However, if the cluster you are using
+          # does not have a built-in DNS service, you can instead
+          # access an environment variable to find the master
+          # service's host. To do so, comment out the 'value: dns' line above, and
+          # uncomment the line below:
+          # value: env
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend
+  labels:
+    app: guestbook
+    tier: frontend
+spec:
+  # comment or delete the following line if you want to use a LoadBalancer
+  type: NodePort 
+  # if your cluster supports it, uncomment the following to automatically create
+  # an external load-balanced IP for the frontend service.
+  # type: LoadBalancer
+  ports:
+  - port: 80
+  selector:
+    app: guestbook
+    tier: frontend
+```
