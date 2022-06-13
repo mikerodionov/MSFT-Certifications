@@ -9,6 +9,21 @@ Service > Ingress > DNS name < user/consumer
 
 DNS names are the last bastion for pets :) We still do not treat them as a cattle.
 
+## ExternalDNS overview
+
+- ExternalDNS will automatically create DNS records from Kubernetes resources
+  - Services (with the annotation external-dns.alpha.kubernetes.io/hostname)
+  - Ingresses (automatically)
+- It requires domain name
+- Domain name should be configurable via API
+
+- Recommended TTL 5 mins
+- [Look up for right tutorial](https://github.com/kubernetes-sigs/external-dns/blob/master/docs/tutorials/)
+- [ExternalDNS helm chart from Bitnami](https://artifacthub.io/packages/helm/bitnami/external-dns)
+- helm upgrade --install external-dns bitnami/external-dns --namespace external-dns --create-namespace --ser provider=PROVIDE_NAME set providerapiToken = $TOKEN
+
+## ExternalDNS with AWS
+
 ```Bash
 # AWS Setup w/o helm chart
 # Get namespaces
