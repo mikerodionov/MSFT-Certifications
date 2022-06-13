@@ -1545,3 +1545,745 @@ spec:
     app: guestbook
     tier: frontend
 ```
+
+```Bash
+kubectl create -f guestbook.yaml
+kubectl get deployments
+kubectl get services
+minikube service --all
+```
+
+### The Kubernetes Dashboard
+
+Web UI dashboard.
+
+```Bash
+minikube status
+# Kubernetes Dashboard included into minikube as an addon
+minikube addons list
+# By default it is in Disabled state
+minikube addons enable dashboard
+# Some of Dashboard fearures depend on metrics-server addon
+minikube addons enable metrics-server
+# Start the dashboard
+minikube dashboard
+```
+
+Dashboard UI allows you to edit objects (e.g. deployments) XML - adding labels and so on, and applying these changes. It also provides convenient way to look at logs or exec into pod, as well as create resources (from existing YAML/JSON file or by filling in form/providing input).
+
+### Dealing with configuration data
+
+#### Configmaps
+
+Configmaps in Kubernetes let you pass dynamic values into your environment.
+
+Apps require a way to pass in data that can be changed at deploy time (log levels, URLs of external systems) - instead of hardcoding this, Kubernetes use configmaps.
+
+Deployment YAML without configmap - env var:
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logreader
+  labels:
+    app: logreader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logreader
+  template:
+    metadata:
+      labels:
+        app: logreader
+    spec:
+      containers:
+      - name: logreader
+        image: karthequian/reader:latest
+        env:
+        - name: log_level
+          value: "error"
+```
+
+```Bash
+kubectl create -f reader-deployment.yaml
+kubectl get pods
+# Check that log level error was passed via env variable
+kubectl logs logreader-7b746fc87-p59jj
+```
+
+Create configmap and deployment which will be using it.
+
+```Bash
+# Create configmap
+kubectl create configmap logger --from-literal=log_level=debug
+```
+
+Deployment YAML with configmap - it references configmap via configMapKeyRef
+
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: logreader-dynamic
+  labels:
+    app: logreader-dynamic
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: logreader-dynamic
+  template:
+    metadata:
+      labels:
+        app: logreader-dynamic
+    spec:
+      containers:
+      - name: logreader
+        image: karthequian/reader:latest
+        env:
+        - name: log_level
+          valueFrom:
+            configMapKeyRef:
+              name: logger #Read from a configmap called log-level
+              key: log_level  #Read the key called log_level
+```
+
+```Bash
+kubectl create -f reader-configmap-deployment.yaml
+# Check configmaps created
+kubectl get configmaps
+# Check specific configmap
+kubectl get configmap/logger -o yaml
+# Check deployment
+kubectl get deployments
+kubectl get pods
+# Verify that value was passed via configmap
+kubectl logs logreader-dynamic-86999f4cc-26xgr
+```
+
+### Dealing with application secrets
+
+In addition to configuration data apps may require some more sensitive data to be provided/passed in - e.g. passwords. Instead of passing them in via YAML we use secrets.
+
+```Bash
+kubectl create secret generic apikey --from-literal=api_key=1234567
+kubectl get secrets
+kubectl get secret apikey
+kubectl get secret apikey -o yaml
+```
+
+Secret value will be encoded in [Base64](https://en.wikipedia.org/wiki/Base64) format and won't be displayed in plain text.
+
+#### Sample app which uses secret via secretKeyRef
+
+```Yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: secretreader
+  labels:
+    name: secretreader
+spec:
+  replicas: 1
+  selector:
+    matchLabels: 
+      name: secretreader
+  template:
+    metadata:
+      labels:
+        name: secretreader
+    spec:
+      containers:
+      - name: secretreader
+        image: karthequian/secretreader:latest
+        env:
+        - name: api_key
+          valueFrom:
+            secretKeyRef:
+              name: apikey
+              key: api_key
+```
+
+```Bash
+kubectl create -f secretreader-deployment.yaml
+kubectl get pods
+# Inspect pod logs to see that value was passed via secretKeyRef
+```
+
+### Running jobs in Kubernetes
+
+Job runs a pod once and then stops, but unlike pods and deployments, output of the job is kept until you remove it.
+
+#### Simple job
+
+Simple job YAML
+
+```yaml
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: finalcountdown
+spec:
+  template:
+    metadata:
+      name: finalcountdown
+    spec:
+      containers:
+      - name: counter
+        image: busybox
+        command:
+         - bin/sh
+         - -c
+         - "for i in 9 8 7 6 5 4 3 2 1 ; do echo $i ; done"
+      restartPolicy: Never #could also be Always or OnFailure
+```
+
+```Bash
+kubectl create -f simplejob.yaml
+kubectl get jobs
+# Check completed pod
+kubectl get pods
+# Check pod logs to see output of job execution
+kubectl logs finalcountdown-rbsz8
+```
+
+### Cronjobs
+
+Cronjobs are like jobs but they can run periodically.
+
+Cronjob YAML
+
+```yaml
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: hellocron
+spec:
+  schedule: "*/1 * * * *" #Runs every minute (cron syntax) or @hourly.
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: hellocron
+            image: busybox
+            args:
+            - /bin/sh
+            - -c
+            - date; echo Hello from your Kubernetes cluster
+          restartPolicy: OnFailure #could also be Always or Never
+  suspend: false #Set to true if you want to suspend in the future
+```
+
+```Bash
+kubectl create -f cronjob.yaml
+# Check cronjobs - to see schedule info
+kubectl get cronjob
+# Check jobs - to see actual job executed on schedule
+kubectl get job
+# Edit cronjob - e.g. change suspend to True, to stop a cronjob
+kubectl edit cronjobs/hellocron
+```
+
+The Suspend key will have a value set to false when it is scheduled; that value being true stops the scheduled run of the job
+
+### Running stateful set apps
+
+DaemonSet ensures that all nodes run a copy of a specific pod. As nodes are added to the clusters, pods are added to them as well.
+
+DaemonSet YAML
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: example-daemonset
+  namespace: default
+  labels:
+    k8s-app: example-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: example-daemonset
+  template:
+    metadata:
+      labels:
+        name: example-daemonset
+    spec:
+      #nodeSelector: minikube # Specify if you want to run on specific nodes
+      containers:
+      - name: example-daemonset
+        image: busybox
+        args:
+        - /bin/sh
+        - -c
+        - date; sleep 1000
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 30
+```
+
+```Bash
+kubectl create -f daemonset.yaml
+kubectl get daemonsets
+kubectl get pods
+```
+
+#### Node selector
+
+Daemonset infra dev
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: example-daemonset2
+  namespace: default
+  labels:
+    k8s-app: example-daemonset2
+spec:
+  selector:
+    matchLabels:
+      name: example-daemonset2
+  template:
+    metadata:
+      labels:
+        name: example-daemonset2
+    spec:
+      containers:
+      - name: example-daemonset2
+        image: busybox
+        args:
+        - /bin/sh
+        - -c
+        - date; sleep 1000
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 30
+      nodeSelector: 
+        infra: "development"
+
+```
+
+```Bash
+kubectl get nodes --show-labels
+# Add label
+kubectl label nodes/minikube infra=development --overwrite
+kubectl create -f daemonset-infra-development.yaml
+# In newly created daemonset we have node selector infra=development
+kubectl get daemonsets
+```
+
+We then can then deploy another deployment which uses selector infra=production - it will deploy but won't run as we have no nodes labeled for production.
+
+```yaml
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: prod-daemonset
+  namespace: default
+  labels:
+    k8s-app: prod-daemonset
+spec:
+  selector:
+    matchLabels:
+      name: prod-daemonset
+  template:
+    metadata:
+      labels:
+        name: prod-daemonset
+    spec:
+      containers:
+      - name: prod-daemonset
+        image: busybox
+        args:
+        - /bin/sh
+        - -c
+        - date; sleep 1000
+        resources:
+          limits:
+            memory: 200Mi
+          requests:
+            cpu: 100m
+            memory: 200Mi
+      terminationGracePeriodSeconds: 30
+      nodeSelector: 
+        infra: "production"
+```
+
+```Bash
+kubectl create -f daemonset-infra-prod.yaml
+# Check to see that deployment not running as there are no nodes based on specified selector
+kubectl get daemonset
+```
+
+#### StatefulSets
+
+**StatefulSet** is the workload API **object used to manage stateful applications**. Manages the deployment and scaling of a set of Pods, and **provides guarantees about the ordering and uniqueness of these Pods**.
+
+Like a Deployment, a StatefulSet manages Pods that are based on an identical container spec. Unlike a Deployment, a StatefulSet **maintains a sticky identity for each of their Pods**. These pods are created from the same spec, but are not interchangeable: each has a **persistent identifier** that it maintains across any rescheduling.
+
+**If you want to use storage volumes to provide persistence for your workload, you can use a StatefulSet as part of the solution.** Although individual Pods in a StatefulSet are susceptible to failure, the persistent Pod identifiers make it easier to match existing volumes to the new Pods that replace any that have failed.
+
+Example with ZooKeeper (key-value store), with affinity configured
+
+```yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk-hs
+  labels:
+    app: zk
+spec:
+  ports:
+  - port: 2888
+    name: server
+  - port: 3888
+    name: leader-election
+  clusterIP: None
+  selector:
+    app: zk
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zk-cs
+  labels:
+    app: zk
+spec:
+  ports:
+  - port: 2181
+    name: client
+  selector:
+    app: zk
+---
+apiVersion: policy/v1beta1
+kind: PodDisruptionBudget
+metadata:
+  name: zk-pdb
+spec:
+  selector:
+    matchLabels:
+      app: zk
+  maxUnavailable: 1
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zk
+spec:
+  selector:
+    matchLabels:
+      app: zk
+  serviceName: zk-hs
+  replicas: 3
+  updateStrategy:
+    type: RollingUpdate
+  podManagementPolicy: OrderedReady
+  template:
+    metadata:
+      labels:
+        app: zk
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - zk
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+      - name: kubernetes-zookeeper
+        imagePullPolicy: Always
+        image: "k8s.gcr.io/kubernetes-zookeeper:1.0-3.4.10"
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "0.5"
+        ports:
+        - containerPort: 2181
+          name: client
+        - containerPort: 2888
+          name: server
+        - containerPort: 3888
+          name: leader-election
+        command:
+        - sh
+        - -c
+        - "start-zookeeper \
+          --servers=3 \
+          --data_dir=/var/lib/zookeeper/data \
+          --data_log_dir=/var/lib/zookeeper/data/log \
+          --conf_dir=/opt/zookeeper/conf \
+          --client_port=2181 \
+          --election_port=3888 \
+          --server_port=2888 \
+          --tick_time=2000 \
+          --init_limit=10 \
+          --sync_limit=5 \
+          --heap=512M \
+          --max_client_cnxns=60 \
+          --snap_retain_count=3 \
+          --purge_interval=12 \
+          --max_session_timeout=40000 \
+          --min_session_timeout=4000 \
+          --log_level=INFO"
+        readinessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "zookeeper-ready 2181"
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        livenessProbe:
+          exec:
+            command:
+            - sh
+            - -c
+            - "zookeeper-ready 2181"
+          initialDelaySeconds: 10
+          timeoutSeconds: 5
+        volumeMounts:
+        - name: datadir
+          mountPath: /var/lib/zookeeper
+      securityContext:
+        runAsUser: 1000
+        fsGroup: 1000
+  volumeClaimTemplates:
+  - metadata:
+      name: datadir
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 10Gi
+```
+
+```Bash
+kubectl create -f statefulset.yaml
+kubectl get statefulset
+kubectl get pods
+
+```
+
+## Advanced topics
+
+### Production Kubernetes deployments
+
+#### Kubernetes the Hard Way tutorial
+
+[Kubernetes the Hard Way tutorial](https://github.com/kelseyhightower/kubernetes-the-hard-way) - fully manual install without any scripts so that one gets to know all the components and configuration.
+
+#### kubeadm
+
+**kubeadm** - the most common and easiest way of installnig Kubernetes in the cloud or on-prem. Install steps:
+
+1. Initially provision the master host with Docker and the Kubernetes distribution.
+2. Run kubeadm init, which starts kubeadm, provisions the Kubernetes control plane, and provides join token.
+3. Run kubeadm join with join token on each worker node. The workers will join the cluster.
+
+#### Install a Pod Network
+
+- Evaluate your networking strategies
+- Consider Flannel and Weave Net as starting options
+
+#### kops
+
+kops is a very popular way to deploy K8s to AWS and looks similar to the way kubectl operates.
+
+- Automates the K8s cluster provisioning in AWS
+- Deploys HA masters
+- Permits upgrading with kube -up
+- Uses a state-sync model for dry runs and automatic idempotency
+- Genereates configuration files for AWS CloudFormation and Terraform configuration
+- Supports custom Kubernetes add-ons
+- Uses manifest-based API configuration
+
+#### Cloud native container services
+
+- Amazon Elasatic Kubernetes Service
+- Azure Container Service
+- Google Container Engine
+- Oracle Container Engine for Kubernetes
+
+#### Managed Kubernetes VS self-install
+
+- Managed Kubernetes offerings are popular choices for Kubernetes in the cloud
+- Spend less time configuring the Kubernetes Control Plane, and more time on your applications
+- Caveat: limited configuration ans slower version upgrades
+- If you running Kubernetes in the cloud, start with the managed service, it reduces infra management overhead (controlplane management overhead removed)
+- If your applications require specific settings that arent't available with the managed service, then run your own Kubernetes install
+
+### More on namespaces
+
+Namespaces are fundamental concept for Kubernetes multi-tenancy.
+
+Kubernetes supports multiple virtual clusters backed by the same physical cluster. These virtual clusters are called namespaces.
+
+#### Namespaces use cases
+
+1. To separate roles and responsibilities in an enterprise
+2. Partitioning environments - dev vs test vs prod
+3. Customer partitioning for non-multi-tenant scenarios (shared tenant)
+
+(1) Enterprise roles and responsibilities
+
+- Typically, teams operate independently but have some shared interfaces and APIs to communicate with each other.
+- Namespaces prevent teams from confusing services and deployments that might not belong to them.
+- Plan standards in advance
+- Do not transpose existing on-prem controls and procedures onto a new environment, try to consider planning from scratch/dropping unnecessary things
+- It is quite common to use namespaces to separate Dev/Test/Prod
+
+(2) Partitioning environments - dev vs test vs prod
+
+Antipatterns:
+
+- Avoid really large namespaces. If you have many applications, consider creating additional namespaces for groups of applications (ecommerce-dev, etc.).
+- Avoid too many environments - don't create them just because you can, do not create what you won't be using
+
+(3) Non-mult-tenant custome partitioning
+
+- Consulting companies and small software wendors might use this method
+- Create a namespace for each customer or project to keep them distinct - no need to worry about reusing the same names for resources across projects
+
+- Side effect from using Helm package manager is that K8s apps comprised of deployment, services, etc., have gotten very complex and they normally delivered in their own namespace to encapsulate app in single "container".
+
+#### Basic namespace commands
+
+```Bash
+# Get all existing namespaces
+kubectl get namespaces
+# Create a namespace
+kubectl create namespace namespace_name
+# Delete a namespace
+kubectl delete namespace namespace_name
+# When deploying a specific resource use -n flag to indicate namespace to deploy into
+```
+
+### Monitoring and logging
+
+[Logging for Success by Ernest Muller](https://theagileadmin.com/2010/08/20/logging-for-success/)
+
+#### Commands to get started
+
+```Bash
+# If app inside of the pode writes into stdout it then will be picked up by kubectl logs
+stdout
+kubectl logs
+```
+
+#### Logging platforms
+
+For productino deployments you might want to use a logging platform like Kibana with Elasticsearch, with logs being shipped to them from pods using Fluentd or Filebeat (Logstash).
+
+Typically Elasticsearch and Kibana instance are deployed outside of an app, but with endpoints accessible to pods in the cluster, and Kibana instance exposed as a service so that you can see logs in UI. In the app deployment we install log shipper - Fluentd, Logstash or Filebeat to gather and send log data to the Elasticsearch instance.
+
+#### Monitoring priorities
+
+- Node health
+- Health of Kubernetes
+- Application health (and metrics)
+
+#### cAdvisor
+
+- cAdvisor is an open-source resource usage collector that was buil for containers
+- Auto-discovers all containers in the given node and collects CPU, memory, filesystem, and network usage statistics
+- Provides the overall machine usage by analyzing the root container on the machine
+
+#### Prometheus
+
+- Prometheus is an open-source systems monitoring and alerting toolkit
+- Used to collect application metrics and monitor Kubernetes via projects like kube-prometheus
+- Application can be instrumented to save metrics at /metrics endpoint
+
+#### Grafana
+
+- cAdvisor and Prometheus are typically linked to Grafana
+- Grafana is an open source tool for visualizing monitoring data
+
+#### Enterprise logging tools with Kubernetes support
+
+Datadog, Splunk
+
+### Authentication and authorization
+
+Two kinds of user in K8s:
+
+- Normal users - humans interacting with the system
+- Service accounts - accounts managed by the K8s API (bound to specific namespace)
+
+Information that defines a user
+
+- Usernane - a string to identify the end user
+- UID - an identifier that is more consistent or unique than username
+- Group - a string that associates users with a set of commonly grouped users - used by authorization module
+
+#### Popular Authentication Modules
+
+- Client certs
+- Static token files (static password file)
+- OpenID Connect
+- Webhook mode
+
+##### Client Certificate Authentication
+
+- Client certificate authentication enabled by passing the --client-ca-file=FILENAME option to the API server
+- Referenced file must contain one or more certificate authorities to validate cleint certificates
+- The common name of a client certificate is used as the user name for the request
+
+##### Token File
+
+- Use --token-auth-file=FILE_WITH_TOKENS option in the command line
+- Token file is a CSV file with 4 columns: token, user name, user UID, followed by optional group names
+  Example: token,user,uid,"group1,group2,groupN"
+- Tokens last indenifitely and API server restart is required to pick up any changes
+
+##### OpenID Connect
+
+- If oyu already have Open ID or AD in your org, take a look at OpenID Connect tokens
+
+##### Webhook tokens
+
+- The kube-apiserver calls out to a service defined by you to tell it whether a token is valid or not
+- Used commonly in scenarios where you want to integrate Kubernetes with a remote authentication service
+
+#### Popular authorization modules for enterprises
+
+- ABAC - Attribute-Based Access Control
+- RBAC - Role-Based Access Control - RBAC is role-based access control, which sets permissions through rules associated with namespaces or clusters
+- Webhook
+
+##### RBAC
+
+- Does a user have a role that can perform a specific action?
+- Lots of applications want to use RBAC - keep it turned on even if you don't use it directly
+- Roles can be defined on a namespace or a cluster level
+- RoleBinding - we bind user/group/service account to role and role to specific operations on specific resource(s)
+
+##### Webhook Authorization Mode
+
+- The kube-apiserver calls out to a service defined by you to tell it whether a specific action can be performed - it send the token and the action the token tries to perform
+- This method works great when trying to integrate with a third-party authorization systems, or if you want a complex set of rules
+
+## Additional Resources
+
+[Kubernetes Documentation](https://kubernetes.io/docs/home/)
+
+Conferences
+
+- KubeCon
+- DockerCon
