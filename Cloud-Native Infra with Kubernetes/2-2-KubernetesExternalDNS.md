@@ -22,6 +22,20 @@ DNS names are the last bastion for pets :) We still do not treat them as a cattl
 - [ExternalDNS helm chart from Bitnami](https://artifacthub.io/packages/helm/bitnami/external-dns)
 - helm upgrade --install external-dns bitnami/external-dns --namespace external-dns --create-namespace --ser provider=PROVIDE_NAME set providerapiToken = $TOKEN
 
+## Testing ExternalDNS
+
+- For services you need annotation - external-dns.alpha.kubernetes.io/hostname
+
+```Bash
+# Annotate nginx service (LoadBalancer type will produce 1 A record, for NodePort it will create A record for every node)
+kubectl annotate service web external-dns.alpha.kubernetes.io/hostname=nginx.yourdomain.com
+# Check ExternalDNS logs
+kubectl logs -n external-dns -l app.kubernetes.io/name=external-dns
+# It takes some time to start/process ~ 5 mins, next verify accessing domain
+# TXT records are used by ExternalDNS to track ownership of the records (heritage/owner=external-dns)
+```
+
+
 ## ExternalDNS with AWS
 
 ```Bash
