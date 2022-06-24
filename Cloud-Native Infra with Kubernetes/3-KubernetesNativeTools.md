@@ -11,13 +11,13 @@ New-Alias vi notepad
 
 - Kubectl - K8s client
 - Minikube, kops, kubeadm - most common tools to install K8s
-    - minikube - local
-    - kops and kubeadm - local(bare metal)/cloud
+  - minikube - local
+  - kops and kubeadm - local(bare metal)/cloud
 - Dashboard, kubefed, Kompose, Helm - general management tools
-    - Dashboard - visualization
-    - kubefed - large cluster federation
-    - Kompose - exporting from Docker
-    - Helm - large application management
+  - Dashboard - visualization
+  - kubefed - large cluster federation
+  - Kompose - exporting from Docker
+  - Helm - large application management
 
 ## Mastering kubectl
 
@@ -571,12 +571,79 @@ Minikube is useful when you want to quickly test upgrades to the latest version 
 
 ### kubeadm
 
-Kubeadm - helps you install and setup a K8s cluster.
+Kubeadm - helps you install and setup a K8s cluster. Native tool since v1.4
 
-Kubeadm allows creation of K8s clusters on machines running
+Kubeadm allows creation of K8s clusters on machines running:
+
 - Ubuntu 16.04+
 - Debian 9
 - CentOS 7
 - RedHat EL 7
 
+#### Cluster setup 0 - Prerequisites
+
+- Docker
+- kubeadm
+- kubelet
+- kubectl
+
+#### Cluster setup 1 - all nodes
+
+- Kubeadm tool has to be installed on all hosts that will be part of a cluster.
+
+#### Cluster setup 2 - on a master node(s)
+
+- Run **kubeadm init** on the master node
+  - Runs checks to verify that selected node can run Kubrnetes
+  - Downloads and installs cluster database and sets up control plane components
+  - Provides a join token that will join any worker node to the kubernetes cluster
+  - Join token should be treated as a sensitive information (allows any machine to join the cluster)
+
+#### Cluster setup 3 - create pod network
+
+- Once master is provisioned we also need a **pod network** so that pods can communicate
+- Kubeadm only supports networks that are a part of the [**ContainerNetwork Interface (CNI) spec**](https://www.cni.dev/docs/spec/) and also doesn't support kubenet
+- Run the **kubectl apply** command to add most of the network plugins
+
+#### Cluster setup 4 - join worker nodes
+
+- Run the **kubeadm join** command on the worker nodes using the join token provided at the end of the kubeadm init provisioning (step 2)
+
+Kubeadm enables simple Kubernetes install.
+
+#### Drawbacks of kubeadm
+
+- Lack of support for multi-master nodes in old versions (before 1.8)
+- Some add-ons are still in alpha phase
+
 ### kops
+
+kops (Kubernetes Operations) - allows to create, destroy, upgrade, and maintain production-grade, HA Kubernetes clusters from the command line.
+
+#### kops Requirements:
+
+- kops
+- kubectl
+- AWS credehtials
+- AWS CLI tools
+
+#### AWS side requirements:
+
+- AWS IAM account
+- Full access to S3, EC2, Route53, and IAM
+- DNS record for the Kubernetes etcd service
+
+#### Cluster set up
+
+Create variables
+
+- export
+  - NAME=clustername.k8s.local
+- export
+  -KOPS_STATE_STORE=s3://prefix-example-com-state-store
+
+Build cluster
+
+```Bash
+kops create cluster \ --zones us-west-2a \ ${NAME}
+```
