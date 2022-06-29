@@ -5,8 +5,3 @@ Fundamentals level certification
 Skills measured / OD
 
 MSFT Learning Path
-
-
-
-
-
