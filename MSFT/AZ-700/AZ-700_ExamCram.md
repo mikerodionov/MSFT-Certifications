@@ -211,7 +211,7 @@ Also the following IP ranges cannot be used for Azure VNETs:
                 - Standard - up to 4 circuit connections
                 - High Port - up to 8 circuit connections + VPN and ER GWs coexistence
                 - Ultra Performance (up to 16 circuit connections) + VPN and ER GWs coexistence + FastPath (allows inbound connection go directly to Azure resources bypassing ER GW via routes filter)
-                ![image](/AZ-700/Images/ExpressRouteGatewaySkuByFeatureSet.png)
+                ![image](./Images/ExpressRouteGatewaySkuByFeatureSet.png)
                 - Can be zonal or zone-redundant (depends on SKU)
                 - Connect your Azure VNETs between each other using VNET peering, as connecting them via Express Route can add latency (Meet Me point can be too far away and will add latency)
                 - Depending on ER Circuit size (from 50 Mbps to 100 Gbps) number of VNETs links can vary from 20 to 100
