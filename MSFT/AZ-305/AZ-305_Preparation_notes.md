@@ -313,12 +313,12 @@ Identity security is not only assigning permissions to users. We need to decide:
 - Are there risks? Misuse of permissions, compromised accounts
 - Are additional controls required? Access from untrusted/unusual locations
 
-### Azure AD Identity Protection
+### AAD Identity Protection
 
-Identity related risks:
+Requires AAD Premium P2 licensing, helps to mitigate identity related risks:
 
 - Credentials theft
-- Use of duplicade passwords
+- Use of duplicade passwords/re-use of the same password
 - Use of unapproved applications
 
 Azure AD Identity Protection - protects identities from being compromised by detecting risks:
@@ -332,14 +332,16 @@ Configuration - Sign-in Risk Policy, User Risk Policy
 
 Risk Events - risks that Identity Protection is monitoring proactively and reactively:
 
-- Users with leaked credentials
+- Users with leaked credentials (MSFT looks up for leaked credentials on Internet)
 - Sign-ins from anonymous IP addresses
 - Impossible travel to atypical locations
 - Sign-ins from infected devices
 - Sign-ins from IP addresses with suspicious activity
 - Sign-ins from unfamiliar locations
 
-Configuration of Azure AD Identity Protection involves configuration of Sign-in Risk Policy, User Risk Policy
+Based on risks we can block login or block an account entirely.
+
+Configuration of Azure AD Identity Protection involves configuration of Sign-in Risk Policy, User Risk Policy. We select risk levels out of High/Medium/Low and avobe - we do not have more detailed configuration/insight as to what exactly it implies.
 
 #### Sign-in Risk Policy
 
@@ -349,7 +351,7 @@ Sign-in Risk Policy implies:
 
 - **Real-Time Detection** - takes effect in real time, these policies can be used to block a sign-in as it occurs
 - **Assignment** - describes when the policy will trigger, this includes defining the applicable users/groups and the risk level condition (low/medim/high)
-- **Control** - describes what to do when the policy triggers, the action can be block or allow sign-in, or allow access but require MFA
+- **Control** - describes what to do when the policy triggers, the action can be block or allow **sign-in**, or allow access but require MFA
 
 Configuration involves:
 
@@ -360,9 +362,9 @@ Configuration involves:
 
 #### User risk policy
 
-Offline detection - takes effect offline, these polices can identify user accounts that are found to be at risk
-Assignment - describes when the policy will be triggerd, including definition of the applicable users/groups and the risk level condition
-Control - describes what to do when the policy triggers, the action can be block or allow accesss, or force password change
+**Offline detection** - takes effect offline, these polices can identify user accounts that are found to be at risk
+**Assignment** - describes when the policy will be triggerd, including definition of the applicable users/groups and the risk level condition
+**Control** - describes what to do when the policy triggers, the action can be block or allow **accesss/account**, or allow access but force password change
 
 #### MFA registration policy
 
@@ -374,7 +376,27 @@ Idenity Protection requires AAD Premium P2 license.
 
 ### Protecting Resources with AAD Conditional Access
 
+AAD Conditional access offers security controls and restrictions that are tailored to different scenarios.
 
+**Requires AAD Premium P1 licensing.**
+
+- Flexible security controls - we can configure different rules for different scenarios
+- Leverages varios signals - variety of signals can be checked, including a user's location, risk level, etc.
+- Can enforce different controls - we can require users to meet special conditions before granting access
+
+Signals: Location, Country, Device, Browser, Risk (from AAD Identity Protection if you have AAD Premium P2 license required for it)
+
+Requirements/configuration:
+
+- AAD tenant with AAD Premium P1 licensing
+- Access Policy Assignment - users/groups this policy applies to, and cloud app or action being accessed; it is also possilbe to include the conditions under which access is being requested (signals)
+- Access Policy Access Controls - define what happens if contditions are met (block/allow access, report-only mode for auditing purposes)
+- Use **Report-Only mode** or the **What If tool** to evaluate policies (when multiple policies are configured it is not so easy to see the final effect)
+
+Conditional Access settings in Azure Portal:
+
+- Named Locations: We can create Named Locations (countries, IP ranges)
+- Policies - Assignments (users/workload identities) with **Exclude configuration for admin or emergency accounts** (to avoid locking out your admins out of Azure Portal)/Clod apps or actions/Conditions/Controls
 
 ## Design a Compute Strategy
 
