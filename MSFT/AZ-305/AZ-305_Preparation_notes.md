@@ -321,7 +321,7 @@ Requires AAD Premium P2 licensing, helps to mitigate identity related risks:
 - Use of duplicade passwords/re-use of the same password
 - Use of unapproved applications
 
-Azure AD Identity Protection - protects identities from being compromised by detecting risks:
+Azure AD Identity Protection - protects identities from being compromised **by detecting risks** (Detection > Risk Analysis > Integration):
 
 - automates detection and remediation of identity-based risks
 - allows easy access to risk-related data and reports within the Azure portal
@@ -336,7 +336,7 @@ Risk Events - risks that Identity Protection is monitoring proactively and react
 - Sign-ins from anonymous IP addresses
 - Impossible travel to atypical locations
 - Sign-ins from infected devices
-- Sign-ins from IP addresses with suspicious activity
+- Sign-ins from IP addresses with suspicious activity (anormal location change)
 - Sign-ins from unfamiliar locations
 
 Based on risks we can block login or block an account entirely.
@@ -349,7 +349,7 @@ Sign-in Risk Policies - define what action to take if risk has been found to be 
 
 Sign-in Risk Policy implies:
 
-- **Real-Time Detection** - takes effect in real time, these policies can be used to block a sign-in as it occurs
+- **Real-Time/Online Detection** - takes effect in real time, these policies can be used to block a sign-in as it occurs
 - **Assignment** - describes when the policy will trigger, this includes defining the applicable users/groups and the risk level condition (low/medim/high)
 - **Control** - describes what to do when the policy triggers, the action can be block or allow **sign-in**, or allow access but require MFA
 
@@ -374,7 +374,7 @@ Identity Protection includes reporting and alerts on detected risks.
 
 Idenity Protection requires AAD Premium P2 license.
 
-### Protecting Resources with AAD Conditional Access
+### AAD Resources Protection - AAD Conditional Access
 
 AAD Conditional access offers security controls and restrictions that are tailored to different scenarios.
 
@@ -384,21 +384,250 @@ AAD Conditional access offers security controls and restrictions that are tailor
 - Leverages varios signals - variety of signals can be checked, including a user's location, risk level, etc.
 - Can enforce different controls - we can require users to meet special conditions before granting access
 
-Signals: Location, Country, Device, Browser, Risk (from AAD Identity Protection if you have AAD Premium P2 license required for it)
+Signals: Location, Country, Device, Browser, Risk (risk level from AAD Identity Protection if you have AAD Premium P2 license required for it)
 
 Requirements/configuration:
 
 - AAD tenant with AAD Premium P1 licensing
 - Access Policy Assignment - users/groups this policy applies to, and cloud app or action being accessed; it is also possilbe to include the conditions under which access is being requested (signals)
-- Access Policy Access Controls - define what happens if contditions are met (block/allow access, report-only mode for auditing purposes)
+- Access Policy Access Controls - define what happens if contditions are met (block/allow access, report-only mode for auditing purposes); make sure you not lock out your admins
 - Use **Report-Only mode** or the **What If tool** to evaluate policies (when multiple policies are configured it is not so easy to see the final effect)
 
 Conditional Access settings in Azure Portal:
 
-- Named Locations: We can create Named Locations (countries, IP ranges)
-- Policies - Assignments (users/workload identities) with **Exclude configuration for admin or emergency accounts** (to avoid locking out your admins out of Azure Portal)/Clod apps or actions/Conditions/Controls
+- Named Locations: We can create Named Locations (e.g. by countries) using IP v4 or v6 ranges and set them as Trusted (trusted/non trusted flag can be used as a signal for conditional access policies)
+Creating New Conditional Access Policy:
+- Assignments - Users/workload identities - Include (none/all users/select users and groups)  with optional **Exclude configuration** (all guest and external accounts/directory roles/users and groups) which you should **use to exlude your admin or emergency accounts** (to avoid locking out your admins out of Azure Portal)/Clod apps or actions/Conditions/Controls
+- Assignments - Cloud apps or actions - None/all cloud apps/select apps
+- Assignments - Conditions (extra signals)
+  - User risk (Identity Protection risk level) - High, Medium, Low
+  - Sign-in risk (Identity Protection risk level) - High, Medium, Low, No risk
+  - Device platforms - Any Device or Selected Platfroms - Android, iOS, Windows Phone, Windows, macOS, Linux
+  - Locations - All trusted locations or Selected Locations
+  - Client Apps - Browser, Mobile apps and desktop clients, Legacy Authentication clients - Exchange ActiveSync clients, Other clients
+  - Device state (Preview)
+  - Filter for devices - Property/Operator/Value to filter on very specific device property (DeviceId, DisplayName, OperatingSystemVersion, Model, Manufacurer etc.)
+- Access controls
+  - Grant
+    - Block access
+    - Grant access but require one or all of the selected possible controls
+      - Require MFA
+      - Require device to be marked as compliant
+      - Require hybrid AAD joined device
+      - Require approved client app
+      - Require app protection policy
+      - Require password change
+  - Session - provide limited experiences within specific cloud applications
+    - Use app enforced restrictions (only works with supported apps - Office 365, Exchange Online, SharePoint Online)
+    - Use condtional access app control
+    - Sign-in frequency
+    - Persistent browser session
+    - Customize continuous access evaluation
+    - Disable maintenance defaults (Preview)
+
+### Protecting Priveleges - AAD Privileged Identity Management (PIM)
+
+Protecting privileges for AAD and Azure roles.
+
+- Protect - enforce additional workflow-like tasks for users to be provided with their priveleges
+- Audit - provide an audit trail with information on privileged usage and justification
+- Review - simplify and automate the ability to review whether privileges are still require by users
+
+Problems/scenarios
+
+- Security admin in theory may need global admin priveleges, but for sure he does not need them 24 hours a day/all the time
+- Some permission need only for specific period of time - project/activity - access reviews may help with that
+
+AAD PIM acts as a gate between users and AAD/Azure privileges, providing the following features
+
+- Just-in-time access - privileges are only assigned but not activated until they are required
+- Time-bound access - privileges are deactivated after a set period of time using start/end dates (project timeline, contractor contract timeliene etc.)
+- Approval - users who are assigned privileges must request approva before they will be activated
+- MFA - enforce the use of MFA to activate any role
+
+AAD PIM also enables audit and review of privileges
+
+- Justification - require justification to be included in any requested activation of privileges
+- Notification - receive notifications when any privileged roles are activated
+- Audit history - download and access logs that detail all Privileged Identity Management Activities
+- Access reviews - periodically review access to ensure users only have roles they currently require
+
+Deploy & configure PIM
+
+- PIM requires AAD Premium P2 or EMS E5 licensing
+- PIM is automatically enabled for an organization when a user with a privileged role first accesses it
+- Configure role settings for Azure and AAD roles (Azure requires role discovery)
+
+When PIM is enabled in AAD User options for Assigned roles insted of Assigned Roles, you see more options there:
+
+- Eligible assignments - Role, Principal name, Scope, Membership, State, Start time, End time, Action
+- Active assignments - Role, Principal name, Scope, Membership, State, Start time, End time, Action
+- Expired assigments - Role, Principal name, Scope, Membership, State, Start time, End time, Action
+
+PIM > Manage
+
+- AAD roles
+- Privileged access groups (Preview)
+- Azure resources (Refresh/Discover resources/Activate role)
+
+PIM > Quick Start
+
+Assign > Activate > Approve > Audit
+
+Assignment - Eligible (with time frame) /Active (with time frame)
+
+Roles support multiple PIM settings
+- Activation maximum duration (hours), default 8
+- Require MFA on activation
+- Require justification on activation
+- Require ticket information on activation
+- Require approval to activate
+
+User who has assigmnent then goes to PIM > My roles and is able to see and activate his assignments listed under Eligible assignments
+
+### Designing Identity Governance
+
+Access reviews for removing privileges where they no longer required.
+
+- Review - manage and conduct access reviews for groups. apps, and roles for staff and guests
+- Schedule - schedule reviews to be performed on a regular basis as part of good identity governance
+- Automate - automate changes (deny/approve) to access based on the outcome of a review
+
+Access review implementation:
+
+- Create the review - specify the review type and timing (e.g. monthly group review)
+- Start the review - the review will begin, and all configured reviewers can perform the assesment
+- End the review - access will be updated based on the results of the review (can be automated)
+- Iteration - start next month review/end next mont review etc.
+
+Important considerations/components:
+
+- Requirements/prerequisites
+  - Requires AAD P2 licensing for reviewers
+  - Azure resources must be discovered
+
+- Azure Portal Capabilities
+  - Configure access reviews
+  - Review/apply access review results: group/applications reviews done via **AAD Identity Governance**, role access (AAD or Azure RBAC roles) reviews done via **PIM**
+
+- Access Panel Capabilities
+  - Separate UI for reviewers
+  - Allows for responses (like justification)
+
+Access review configuration
+- Review type
+  - Teams + Groups
+    - Review Scope: All MSFT 365 groups with guest users / Select Teams + groups
+    - Scope - Guest users only / All users
+  - Applications
+- Reviews
+  - Specify reviewers - Group owner(s) / Selected userI(s) or group(s) / Users review their own access / Managers of users
+  - Specify recurrence of review
+    - Duration (in days)
+    - Review recurrence - One time / weekly / Monthly / Quarterly / Semi-annually / Annually
+    - Start date
+    - End date - Never / Specific date / After number of occurrences
+- Settings
+  - Upon completion
+    - Auto apply results to resource
+    - If reviers don't respond - No change / Remove access / Approve access / Take recommendations
+    - At the end of review send notification to - select user(s)/groups(s)
+  - Enable reviewer decision helpers
+    - No sign-in within 30 days
+  - Advanced settings
+    - Justification required
+    - Email notifications
+    - Reminders
+    - Additional content for reviewe email
+
+Review types recap
+
+- Group membership
+  - Reviewer type - Specified reviewers, group owner, self-review
+  - Review creation - **AAD access reviews, AAD groups**
+  - Reviewer experience - Access panel
+- App assignment
+  - Reviewer type - Specified reviewers, self-review
+  - Review creation - **AAD access reviews, AAD enterprise apps**
+  - Reviewer experience - Access panel
+- AAD Role
+  - Reviewer type - Specified reviewers, self-review
+  - Review creation - **AAD PIM**
+  - Reviewer experience - Access panel
+- Azure Resource Role
+  - Reviewer type - Specified reviewers, self-review
+  - Review creation - **AAD PIM**
+  - Reviewer experience - Access panel
+
+### Design for Identity Security - Requirement/Solution + Recap
+
+- Enforce MFA when app accessed outside of corp network - conditional access policy (enforce MFA but exclude corp network/head office - trusted/known location), conditional access requires AAD P1 license
+- Block access when Identity Protection identities risk - use Identity Protection risk factor within conditional access policy (IP requires AAD P2 license)
+- RBAC - to follow/implement principle of least privileges
+- Just-in-time privileged access manageemnt - PIM (activate priveleges for N of hours), requires AAD P2 license
+- Elevation approval - PIM, requires AAD P2 license
+- PIM & IP require AAD P2 license
+
+Conditional Access location, when configured can be excluded on a per-policy bases. Configured based on IP address ranges, and can be tagged as a trusted location. Once location is configured it can be used in zero or more policy to be included or excluded. You can also configure country location (in this case you select geograhic location & MSFT manages the IP addresses associated with it to define whether the request originates from a specific country).
+
+[AAD Identity Protection](https://docs.microsoft.com/en-us/azure/active-directory/identity-protection/overview-identity-protection) requires AAD Premium P2 licensing
+
+An **IP sign-in risk policy** can be used to block sign-in attempts as they occur based on risl levels associated with authentication request based on anonymous IP address being used, sign in from distant/atypical locatios, from malware-linked IP addresses, etc.
+
+Access Reviews
+- Review users assigned to AAD integrated apps
+- Review group memberships (cloud-based, synchronized and Microsoft 365 groups)
+- Review AAD and Azure resource roles
+
+AAD Conditional Access requires AAD Premium P1 license
+
+AAD Conditional Access allows require conditions (check/enforce) for different scenarios. Acccess can be blocked/allowed for specific scenarios or under specific conditions - e.g. for specific devices, locations, risk levels, etc.
+
+It is possible to configure PIM to require MFA for role activation. Global Admin role settings can be configured to require MFA for all activations.
+
+What If feature of conditional access policies
+- Helps determine whether access would be allowed or denied when multiple policies are configured
+- Allow you to specify the conditions and parameters of a given scenario to determine the policy result
+
+Multiple Conditional Access policies can be configured and all conditions of all policies that apply to a given access scenario must be met. The What If tool helps in determining how multiple policies impact access to resources. With the What If tool, you are able to enter in all of the various parameters for a given scenario (IP address, device type, risk level, etc.). Using this information, the tool will then determine the impact of all applicable Conditional Access policies that have been configured (e.g., will access be allowed/denied, would MFA be required, etc.).
+
+AAD IP - protects us4ers and sign-ins from various risks, such as suspicious activity, leaked credentials, etc.
+
+AAD PIM - can be used to ensure that both AAD and Azure RBAC roles are only activated when needed. With PIM, priveleges can be assigned, but not active. Additional features like just-in-time access to privileges, approvals, and justification can be configured.
+
+Access reviews:
+
+- Can be scheduled to run automatically on a recurring basis
+- Can automatically remove access once a review is complete
+
+Access reviews can be scheduled to recur periodically, such as weekly, monthly, quarterly, or annually. For example, a review could run on a monthly basis and be configured to allow a 2-week window within that month for the reviewers to participate.
+
+Automation is one of the key benefits of access reviews. It is possible to have the results of a review automatically applied to a resource once the review finishes (e.g., automatically removing users from security groups they are a member of if they don't respond to a self-review access review).
 
 ## Design a Compute Strategy
+
+- VMs
+- Container Solutions
+- Application Hosting
+- Large-Scale Compute
+
+Hosting & Shared Responsibility Models
+
+IaaS - Greater control and access from the OS up; client responsible for OS, runtime, apps, functions, whiole provider takes care of infra
+PaaS - Less control and access alongside, lower admin overhead; client responsible for apps, functions, while provider takes care of infra, OS, runtime
+FaaS (Functions as a Service) / serverless - limited control and access with a focus on individual functions; client manages functions, while provider takes care of infra, OS, runtime, apps
+
+You select model based on workload you have, and path to the cloud may vary. General steps outline:
+
+- Architect and plan
+- Lift and shift
+- Handover
+- Rearchitect and optimize for cloud
+- Handover and maintain
+
+### Architecting VM based solutions
+
+
 
 ## Design a Networking Strategy
 
