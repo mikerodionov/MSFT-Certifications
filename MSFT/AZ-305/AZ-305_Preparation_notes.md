@@ -611,11 +611,17 @@ Automation is one of the key benefits of access reviews. It is possible to have 
 - Application Hosting
 - Large-Scale Compute
 
-Hosting & Shared Responsibility Models
+**Hosting & Shared Responsibility Models**
 
-IaaS - Greater control and access from the OS up; client responsible for OS, runtime, apps, functions, whiole provider takes care of infra
-PaaS - Less control and access alongside, lower admin overhead; client responsible for apps, functions, while provider takes care of infra, OS, runtime
-FaaS (Functions as a Service) / serverless - limited control and access with a focus on individual functions; client manages functions, while provider takes care of infra, OS, runtime, apps
+IaaS - Greater control and access from the OS level and up
+  - client responsible for   - OS, runtime, apps, functions
+  - provider responsible for - infra
+PaaS - Less control and access alongside, lower admin overhead
+  - client responsible for   - apps, functions
+  - provider responsible for - infra, OS, runtime
+FaaS (Functions as a Service) / serverless - limited control and access with a focus on individual functions
+  - client responsible for   - functions
+  - provider responsible for - infra, OS, runtime, apps
 
 You select model based on workload you have, and path to the cloud may vary. General steps outline:
 
@@ -626,8 +632,22 @@ You select model based on workload you have, and path to the cloud may vary. Gen
 - Handover and maintain
 
 ### Architecting VM based solutions
+>>>
+VMs key characteristics:
 
+- Versatility - support for many scenarios, from new solutions to lift-and-shift migrations
+- Full control - control of everything from OS level and up (access to Windows Registry or Linux configuration via /etc); remote management
+- High maintenance - you are responsible for maintenance, patching, updates, security, and more
 
+Creating VMs
+
+- Name - not easily changeable
+- Region/zone - impacts available sizes
+- Deployment into VMET, region/zone must be the same for VNET and CM
+- NIC resource provides connectivity
+- OS & storage
+  - Image - supports market place or custom
+  - Disks - requires at least an OS disk
 
 ## Design a Networking Strategy
 
