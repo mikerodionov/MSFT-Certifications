@@ -146,3 +146,162 @@ alias ALIAS=COMMAND
 ```
 
 ## DAY 02
+
+rm .bash_history
+
+### Absolute/relative paths
+
+Absolute path - starts from root /, in Win from drive letter.
+
+In Linux we have 1 root, in Windows every drive has its own separate root starting from drive level (no common root).
+
+### Data flows
+
+Data flows/channels.
+
+stdin[0] - input stream
+stdout[1] - output stream
+stderr[2] - error stream
+
+```Bash
+echo "Hola mundo"
+# Write to txt file, overwriting existing file
+echo "Hola mundo" > out.txt
+# Write to txt file, appending to existing file
+echo "Hola mundo" >> out.txt
+# Below will output error to stderr[2] and nothing to file/stdout[1]
+echno "Hola mundo" > out.txt
+# Sending to 2 streams
+find / -name interfaces 1> match.txt 2> error.txt
+```
+
+```Bash
+/usr/bin/df -hT | grep -v loop
+```
+
+**/dev/null** - "black hole" - discards everything you send into it
+
+Pipe - pass stdout of one command to stdin of another one.
+
+ifconfig - deprecated package, alternative ip.
+
+tr command - translate/delete characters, can be useful to replace space with some other symbol (" " > ";") to see more easily double spaces.
+
+```Bash
+# Replace char/letter
+echo "Hola" | tr "H" "Z"
+```
+
+cut command - cut part of the file based on specified delimiter and column N ()
+
+grep - print out lines which match patterns
+```Bash
+# Look up for user
+cat /etc/passwd | grep mikhail
+# Count cosequtive unique lines
+uniq -c
+# Order to make data consequtive
+sort
+```
+
+/var/log/secure
+
+### Aliases
+
+alias - shows configured aliases
+
+
+~/.bashrc, inside of it:
+
+if [ -f ~/.bash_aliases ]; then
+    . ~/.bash_aliases
+fi
+
+~/.bash_aliases
+
+### Check/ban IP
+
+https://www.ripe.net/ - entity which manages public IPs in EU, Russia
+
+ripe.dm
+
+whois
+
+fail2ban
+https://www.arsys.es/blog/instalar-fail2ban
+
+/var/log/auth.log
+
+clear / ctrl + L - clears screen by scrolling up
+reset - deletes
+
+### 103.2 Process text streams using filters
+
+less is interactive command, you will need to exit yourself
+
+less
+/word_to_search
+
+more is noninteractive command it exists itself
+
+more
+
+head
+tail
+
+tail -f
+
+tac - cat backwards :)
+
+
+```Bash
+bzcat
+cat
+cut
+head
+less
+md5sum
+nl
+od
+paste
+sed
+sha256sum
+sha512sum
+sort
+split
+tail
+tr
+# uniq counts only consequitive lines as occurences, non consequtives will be counted separately
+# can be used in combination with sort to workaround non-consequitive occurrences problem
+uniq
+wc
+xzcat
+zcat
+
+# Number file lines, enter/line return counts for new line for the system
+nl
+cat -n file.txt
+# in vi set list command will show line return as $ / set nolist to disable this
+# cat -e to show end of line as $
+cat -e file.txt
+
+# sort by column, -n to specify numeric sort
+sort -k 2 -t":" -n data.txt
+# -R for random sort
+alias voluntarion='sort -R students | head -l'
+```
+
+### Packaging/compression
+
+Packaging - tar - no compression, just package into one file
+Compression - gzip, bzip2, xz
+
+To group files into package you package them, then compress
+
+tar czf package.tar file*
+
+File globbing VS regular expressions
+
+Parameters: - Unix style, -- GNU style
+
+## DAY 03

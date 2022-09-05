@@ -29,6 +29,11 @@ Architecture - designing Azure solutions that meet specific requirements
 
 Exam covers massive range of services. Some of those services/features require additional licensing costs.
 
+### Recommended pre-requisite courses/learning
+
+- Azure Well Architected Framework
+- Azure Administration
+
 ### Solution Architect Role
 
 [Well-Architected Framework](https://docs.microsoft.com/en-us/azure/architecture/framework/)
@@ -613,7 +618,7 @@ Automation is one of the key benefits of access reviews. It is possible to have 
 
 **Hosting & Shared Responsibility Models**
 
-IaaS - Greater control and access from the OS level and up
+IaaS - Greater control and access from the OS level and up - your workload/may require this level of control
   - client responsible for   - OS, runtime, apps, functions
   - provider responsible for - infra
 PaaS - Less control and access alongside, lower admin overhead
@@ -628,11 +633,13 @@ You select model based on workload you have, and path to the cloud may vary. Gen
 - Architect and plan
 - Lift and shift
 - Handover
-- Rearchitect and optimize for cloud
+- Rearchitect and optimize for the cloud (optimize performance or cost)
 - Handover and maintain
 
 ### Architecting VM based solutions
->>>
+
+#### VMs
+
 VMs key characteristics:
 
 - Versatility - support for many scenarios, from new solutions to lift-and-shift migrations
@@ -641,13 +648,429 @@ VMs key characteristics:
 
 Creating VMs
 
-- Name - not easily changeable
+- Name - not easily changeable/reconfigurable
 - Region/zone - impacts available sizes
-- Deployment into VMET, region/zone must be the same for VNET and CM
-- NIC resource provides connectivity
+- Deployment into VNET, region/zone must be the same for VNET and CM
+- NIC resource provides connectivity, VM can have more than 1 NIC (depending on VM family)
 - OS & storage
   - Image - supports market place or custom
   - Disks - requires at least an OS disk
+
+VM families
+
+- General Purpose - balanced CPU-to-memory ratio, suitable for test/dev and small workloads
+- Compute Optimized - high CPU-to-memory ratio, suitable for medium workloads
+- Memory Optimized - high memory-to-CPU ratio, suitable for relational DB servers
+- Storage Optimized - for workloads with high disk throughput and IO requirements
+- GPU - specialized VMs for graphics rendering, or deep learning workloads
+- HPC - high performance compute with powerful CPU and network (ML, high-performance parallel batch processing)
+
+Create new VM
+
+- Basics
+  - Subscription
+  - RG
+  - Instance details
+    - VM name
+    - Region - can influence size options
+    - Availability options - No infra redundancy required
+    - Security type - Standard
+    - Image
+    - Azure Spot instance - Y/N
+    - Size - various sizes available within each family which define N of CPUs,  RAM, N of data disks, max IOPS, temp storage size & price
+  - Admin account
+    - Username
+    - Password
+  - Inbound port rules
+- Disks
+  - Disk options - can be influenced by VM family, storage optimized families offer more options
+    - OS disk type + redundancy
+      - Premium SSD - prod and performance sensitive solutions
+      - Standard SSD - web servers, light enterprise apps and dev/test
+      - Shandard HDD - backup, non-critical, and infrequent access
+    - Delete with VM - Y/N
+    - Encryption at host - Y/N
+    - Encryption type - (Default) Encruption at-rest with a platform-managed key
+    - Enable Ultra-Disk compatibility - Y/N
+  - Data disks
+- Networking
+  - VNET - must be in the same region as VM
+  - Subnet
+  - Public IP
+  - NIC NSG - None/Basic/Advanced
+  - Public inbound ports - None/Allow selected ports
+- Management
+- Advanced
+- Tags
+- Review + Create
+
+#### VM Scale Sets
+
+VM scale sets functionality
+
+- VM-based = similar benefits (control level) and maintenance overheads (responsibility level)
+- HA - provides additional features for HA
+- Autoscaling - capabilities for scaling out to meet demand
+
+VM scale set architecture/components
+
+- Image and configuration - VMSS configuration is similar to VM config and supports custom images
+- VMSS instances - instances are deployed to an **availability set/zone** based on VMSS configuration
+- Autoscaling - supports availability and demand by scaling instances count in and out
+- Deployment options - AZ / multi AZ within a region (VNET can span AZs within a region)
+
+Create VM scale set
+
+Basics
+
+- VMSS name
+- Region
+- AZ - multiple AZs can be selected (Zone 1/Zone 2/Zone 4) to handle data center failure
+- Orchestration
+  - Orchestration mode
+    - Uniform - optimized for large scale stateless workloads with identical instances
+    - Flexible - achieve HA at scale with identical or multiple VM types
+  - Security type
+  - Instance details
+    - Image
+    - Azure spot instance - Y/N
+    - Size
+  - Administrator account
+
+Networking
+
+- VNET - into which VMSS instances will be deployed to
+- Network interface
+- Load balancer - Y/N
+- Load balancing settings
+  - LB options
+    - Application gateway - an HTT/HTTPS web traffic LB with URL-based routing, SSL termination, **session persistence**, and web app firewall
+    - Azure load balancer - supports all TCP/UDP network traffic, port-forwarding, and outbound flows
+  - Select a LB/create new
+
+Advanced
+
+- Allocation policy
+  - Enable scaling beyond 100 instances
+  - Force strictly even balance arcoss zones
+  - Spreading algorithm
+    - Max spreading
+    - Fixed spreading (not recommended with zones)
+- Custom data - pass a script or config file into VM while it is being provisioned
+- User data - Enable/Disable -pass a script or config file into VM which will be availabe throughout lifetime of the VM (do not use for storing secrets or passwords)
+
+VMSS scaling
+
+- Manual scale - specify instance count
+- Custom autoscale
+  - Autoscale setting name
+  - Resource Group
+  - Predictive autoscaling (Public Preview)
+  - Default - Auto created scale condition
+    - Scale mode
+      - Scale based on a metric
+      - Scale to a specific instance count
+    - Rules - e.g. increase instance count by 1 when CPU usage is above 70%
+    - Instance limits - minimum/maaximum/default
+    - Schedule
+
+### Architecting Container-Based Solutions
+
+Containers definition
+Azure Container Instances
+Azure Kubernetes Service
+
+#### Containers
+
+Dockerfile - container definition which used to generate container image (containing everything that we need to run our app/workload).
+
+```
+FROM nginx:alpine
+WORKDIR /usr/share/nginx/html
+COPY ./index.html ./
+```
+
+Container image
+
+Container registry - storage for container images
+
+Container instance - instance image running on top of container engine (AKS, Docker)
+
+#### Azure Container Instances
+
+- Launch in seconds, billed on a per-second basis basis
+- Suits only simple workloads - testing, development or running short-living processes
+- Limited functionality - supports container groups and persistent storage only
+
+Azure Container Instances Components/Architecture
+
+- Container Instances - deploy a container from Azure Container Registry, or other public/private registry
+  - When started container instance image runs on container instance compute
+  - Container restart = back to original state of its image
+- Persistent Storage - Azure file shares can be mounted directly to a container for persistent storage (to persist/share data)
+- Container Groups - containers can be scheduled on the same host to share resources
+
+Create Container Instance
+
+Basics
+
+- Subscription
+- Resource group
+- Container details
+  - Name
+  - Region
+  - AZs
+  - Image source - Quick start images/ACR/Docker Hub or other registry
+  - Image
+  - Size
+
+Networking
+
+- Networking type
+  - Public - will create public IP for your CI
+  - Private - will allow you to choose a new tor existing vnet for your CI (not available for Windows containers)
+  - None - won't create a public IP/vnet
+
+Creating container groups
+
+- Done using acigroup.yml file
+
+```Bash
+az container create --resource-group ACI-RG --file acigroup.yml
+```
+
+E.g. you may want to create an ACI group for Wordpress comprised of 2 ACI - Wordpress & MySQL
+
+#### Azure Kubernetes Service
+
+- Orchestration - automatic pod/cluster scaling, node upgrades, etc.
+- Docker support - supports Docker images from public/private repositories
+- Persistent storage - leverage Azure Files or managed disks for storage
+- AAD integration - configure RBAC for AKS leveraging AAD identities
+- Virtual networking - inregrated VNet connectivity
+- Monitoring - integrates with Azure Monitor for complere monitoring
+
+AKS components/architecture
+
+- Control Plane - core Kubernetes infrastructure, managed by Azure. This is **not charged** as part of AKS. = full Kubernetes cluster managed by MSFT
+- Nodes - VMs (or Azure Container Instances) that run workloads. This is **charged**.
+- Pods
+- Networking - connectivity within a VNet using Kubernetes networking or Azure Container Networking interface
+
+#### ACI vs AKS
+
+ACI intended for simple containerized solutions, to run a simple container(s)
+AKS intended for more advanced containerized solutions, to run solutions made up of multiple different tiers (processing, web, data, API); AKS helps with orchestrating all solution containers, load balancing, scaling, healing etc.
+
+Create AKS
+
+Create Kubernetes Cluster
+
+Basics
+- Kubernetes version
+- API server availability
+  - 99,9 - optimize for availability, available when at least 1 AZ is selected
+  - 99,5 - optimize for cost
+  - 99,95 - recommended for standard config, available when at least 1 AZ is selected
+
+Node pools
+- agentpool
+- Enable virtual nodes - Y/N - allow burstable scaling backed by serverless ACI
+- Enable VMSS - creates a cluster that uses VKSS instead of individual VMs, required for autoscaling, multiple node pools, and Windows support; enabled by default
+- Node pool OS disk encryption
+
+Authentication
+- Cluster infrastructure - identity used by AKS to manage cloud resources attached to the cluster
+  - Service principal
+  - System-assigned managed identity
+- Kubernetes authentication and authorization - used to control user access to AKS  cluster and what user is allowed to do
+  - RBAC - Enabled/Disabled (Enabled by default)
+  - AKS-managed AAD - enables AAD integration and allows to assign AAD admin groups for AKS cluster
+
+Networking
+- Network configuration
+  - Kubenet
+  - Azure CNI - select subnet and each pod on a node will be using an IP from selected subnet, can quickly exhaust subnet space if high number of pod per node is set (consider modifyng default values of pod per node for each node pool)
+- DNS name prefix
+- Traffic routing
+  - Load balancer
+  - Enable HTTP application routing - Y/N
+- Security
+  - Enable private cluster
+  - Set authorized IP ranges
+  - Network policy
+
+### Deploy a container with ACI
+
+Container Image - defines exactly what our container should look like, including operating system, files, etc.
+Azure Container Instances (ACI) - allows us to quickly deploy an instance of a container, from a container image
+Network Connectivity - once container is up it van be accessed via FQDN and public IP
+
+DNS name label - label.region.azurecontainer.io
+
+labcontainer1.centralus.azurecontainer.io
+
+### Architecting Application Hosting in Azure
+
+Azure App Service
+Function Apps
+Pricing
+
+#### Azure App Service
+
+- Infrastructure management - no need to patch, maintain, or manage underlying infrastructure
+- HA - built-in support for HA
+- Autoscaling - supports automated scaling in and scaling out
+- Streamlined development - integrated tools to streamline development
+- CI/CD - includes CI/CD features such as staging slots
+- Azure integration - with AAD for auth, with VNETs for connectivity (depends on selected plan)
+
+Azure App Service architecture/components
+
+- App
+  - Web: Java, Ruby, Node.js, PHP, Python, .NET
+  - Mobile: iOS and Android app backends
+  - API: REST-based HTTP/HTTPs web APIs
+  - WebJobs: scheduled/triggered tasks
+
+- App Service Plan - hosting environment that executes your; plan determines features/resources
+  - Can be Windows or Linux based, which influences available languages
+  - Shared multi-tenant service - you share some ingress and egress networking, as well as compute (depending on plan) with other customers
+
+#### Azure App Service Pricing
+
+- Shared - cheapear plans with fewer features; apps can run on the same compute as other customers
+- Dedicated - only apps belonging to the app service plan run on these dedicated compute nodes; includes additional features
+- Isolated - entirely dedicated and isolated to a customer's network; includes greater scale out capability
+
+App Service Plan
+
+- Scale up (App Service Plan)
+- Scale out (App Service Plan) - manual/custom autoscale - similar to VMSS
+
+Create a Web app
+
+Basics
+- Project details
+  - Subscription
+  - RG
+- Instance details
+  - Name (name.azurewebsites.net)
+  - Publish - Code/Docker Container/Static Web App
+  - Runtime stack
+  - OS
+  - Region
+- App Service Plan
+  - Select/create plan
+- Zone redundancy - Enabled (minimum app service instance count will be 3)/Disabled
+
+VS Code - deploy Web App into existing Web App in Azure
+
+#### App Service extra functionality
+
+- Authentication - "Easy Auth", allows to add an identity provider (Microsoft/Apple/Facebook/GitHub/Google/Twitter/OpenID Connect)
+- Custom domains and SSL enforcement
+- Backups
+- Custom domains
+- Deployment Center - allows to setup deployment workflow (CI/CD)
+- Deployment Slots - multiple slots can be created (staging/prod switch aka blue-green deployment); deployments slots are live apps with their own hostnames, app content and configurations elements can be swapped between two deployment slots, including the production slot
+
+#### Azure Fuctions
+
+Simplicity VS Control
+
+Azure Functions (FaaS/serverless) provider greater simplicity and lesser control if compared with App Service, Containers or VMs.
+
+Solution stack up to bottom:
+
+- Solution functions
+- Solution
+- OS
+- Infra
+
+Azure Function Apps architecture/components
+
+Azure Functions
+- Function app - hosting environment and plan
+- Function - code to perform some function
+- Hosting plan
+
+Trigger
+- Trigger - what causes function to execute (e.g., a timer or an HTTP request)
+
+Bindings
+- Binding - inbound and outbound integration (e.g., an inbound HTTP trigger and outbound blob)
+
+Function Hosting
+
+Key features to consider when selecting an app service plan
+
+- Consumption - pay for execution only (time, memory); scaling is managed for you
+- Premium - provides extra features: warm instances, VNet connectivity, unlimited execution, and premium sizes
+- Dedicated (you will be actually using app service plan) - an app service plan, useful for custom images or existing underutilized plans
+
+Create function
+
+- Development environment
+  - Develop in portal
+  - VS
+  - VS Code
+  - Any editor + Core Tools
+- Select a template
+  - HTTP trigger (&name=john)
+  - Timer trigger
+  - Azure Queue Storage trigger
+  - Azure Storage Bus trigger
+  - Azure Service Bus Topic trigger
+  - Azure Blob Storage Trigger
+  - Azure Event Hub trigger
+
+App Service VS Azure Functions
+
+App Service - when you want fully fledged application solution in the cluoud and only focus on programming it without worrying about the infra, with CI/CD and LB
+Azure Functions - when you just want a simple function which has to be performed in response to some trigger (HTTP request, message from an Azure Queue, Azure Storage event etc.)
+
+### Stage a .NET Web App Using App Service Deployment Slots and Azure CLI
+
+The Azure App Service includes deployment slots to help improve the way in which updates to your code can be deployed to production.
+Staging slot can be used to test changes in your web app.
+
+Web App
+Deployment Slot
+App Service Plan
+
+- Deploy a simple .NET Core web application to a new web app in Azure App Service
+- Make changes to your web application, and deploy these to a staging slot
+- Perform a slot swap, so that your changes are promoted to production
+
+```Bash
+# Create a new web app, -o to output web app into specified folder
+dotnet new webapp -o webapp
+# Switch to web app dir
+cd webapp
+# Create and deploy web app - make sure RG exists, otherwise error will be a bit counter-intuitive
+az webapp up -n <APPNAME> -g <RESOURCE_GROUP> --sku s1 --location "<LOCATION>"
+# Create deployment slot
+az webapp deployment slot create -n <APP_NAME> -g <RESOURCE_GROUP> --slot staging
+# Add changes to app - edit index.cshtml with Code
+code Pages/Index.schtml
+# Publish the updated code
+dotnet publish -o build2
+cd build2
+zip -r build.zip .az webapp deployment slot swap -n <APP_NAME> -g <RESOURCE_GROUP> --slot staging --target-slot production
+# Zip Deploy to staging slot - sometimes fails and has to be re-run
+az webapp deployment source config-zip -n <APP_NAME> -g <RESOURCEGROUP> --src build.zip --slot staging
+# Swap Staging and Production Slots
+az webapp deployment slot swap -n <APP_NAME> -g <RESOURCE_GROUP> --slot staging --target-slot production
+```
+
+For slots it is also possible to set traffic pecentage per slot - so that you gradually introduce users to new version and monitor the situation/reported issues.
+
+### Architecting Large-Scale Compute
+
+>>>
+
+### Isolating Compute-Based Solutions
 
 ## Design a Networking Strategy
 
