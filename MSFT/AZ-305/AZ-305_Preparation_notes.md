@@ -1068,7 +1068,60 @@ For slots it is also possible to set traffic pecentage per slot - so that you gr
 
 ### Architecting Large-Scale Compute
 
->>>
+High-Performance Compute
+Azure Batch
+Azure CycleCloud
+
+#### Why of Large-Scale Compute
+
+Big problem requires team work/splitting it into separate parts and processing by individuals.
+
+High-Performance Compute (HPC) solutions share a common architecture
+
+- Application/Service with resource intensive/big **job** (encoding/decoding etc.)
+- **Job scheduler** splits job into smaller tasks to be execute by separate compute nodes
+- **Parallel execution** - compute nodes process tasks received from scheduler simultaneously, in parallel and output resultat to storage
+- **Tightly coupled execution** - data processed by one node, then by other and another, etc. (not parallel)
+- Frequently compute nodes may require high-throughput, low-latency connectivity (InfiniBand)
+
+#### Azure Batch
+
+Azure Batch key functionality
+
+- **Fully managed** cloud HPC cluster and scheduling infrastructure
+- **Built-in scheduler** - no cluster or job scheduler software to install/manage
+- **Intended for Developers** - targeted toward developers, provides tools and an API for HPC jobs
+
+Azure Batch components/architecture
+
+- Batch Account - includes all necessary HPC infra, such as nodes/node pools and job scheduling (splitting job into tasks)
+- Application/Service - customer's application/service, responsible for managing jobs through the batch API
+- Storage account - can be used for storing job-related resources and files (in/out)
+
+Create Batch Account
+
+Basics
+- Project details
+  - Subscription
+  - RG
+- Instance Details
+  - Account name
+  - Location
+- Storage account
+
+Advanced
+- Identity type - None/System assigned/User assigned
+- Public network access - Enabled/Disabled
+- Pool allocation mode - Batch service/User subscription
+- Authentication mode
+
+#### Azure CycleCloud
+
+Azure CycleCloud Functionality
+
+- **Easy deployment** - simplified provisioning and management of cloud/hybrid HPC
+- **Bring your own scheduler** - supports third-party schedulers and file systems
+- **For HPC admins** - helps admins to deploy familiar autoscaling HPC solutions
 
 ### Isolating Compute-Based Solutions
 
