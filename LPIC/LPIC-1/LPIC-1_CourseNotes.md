@@ -305,3 +305,154 @@ File globbing VS regular expressions
 Parameters: - Unix style, -- GNU style
 
 ## DAY 03
+
+```Bash
+ls /tmp/
+mv /dir1/file1 /dir2/file2
+# -f to suppress confirmation prompt
+mv -f /dir1/file1 /dir2/file2
+# "mv -i" = interactive = ask for confirmation, on RedHat distros mv is an alias to "mv -i"
+# to create multple sub dirs _101, _102, etc.
+#  -p, --parents - no error if existing, make parent directories as needed
+mkdir -p lpi/exam_{101,102,201,202}/topics
+# Remove the DIRECTORY(ies), if they are empty.
+rmdir
+# Remove directory with files
+rm -rf /dir
+# ls
+#  -A, --almost-all - do not list implied . and ..
+# -h, --human-readable - with -l and -s, print sizes like 1K 234M 2G etc.
+
+# File Globbing, 3 types of globs (aka wildcards)
+# * - any combination of any number of characters
+# ? - any single character
+# [] - matches the combination by exactly one character [A2] will return anything that contains A or 2
+# ! - exclamation mark excludes characters from the list within the square bracket [!BC]
+# ranges [a-z] and [0-9]
+
+# grep with regex
+# ^ beginning of a line
+# $ end of a line
+# all commented lines
+grep "^#"
+# all except comments - use -v = invert match
+# remove comments (grep -v "^#") and empty lines (grep -v "^$")
+cat .bashrc | grep -v "^#" | grep -v "^$"
+grep -v "^#" .bashrc | grep -v "^$"
+
+# File globbing VS regular expressions
+
+# Search any number of spaces with end of line (empty line with N spaces) * = 0 to N occurrences
+grep "^ *$" test.txt
+# Eleminate such lines
+grep -v "^ *$" test.txt
+
+grep [3-5] /etc/passwd
+
+# . any character in specific position only "1.3" will match 123, 113, 153 etc.
+# .* - asterisk refers back to preceding char = any char any number of times from 0 to N
+
+# Extended regular expressions
+# grep -E =  -E, --extended-regexp PATTERNS are extended regular expressions
+# +, ? - 1 or N times occurrence of preceding char or pattern, {} - number of repetition of preceeding char or pattern
+# {1,3} = {min,max}
+
+# () - groups of patterns
+# Search for IPv4
+# Look for 1 or 3 digits followed by literal dot and repeat 3 times
+grep -E "([0-9]{1,3}\.){3}" test.txt
+# 
+grep -E "([0-9]{1,3}\.){3}[0-9]{1,3}" test.txt
+
+# | - use more than one pattern (one or another)
+grep -vE "^$|^#" test.txt
+
+# non system users will have UID above 1000
+# Users with home dir
+ grep home.* /etc/passwd
+```
+
+#### 103.8 Basic file editing
+
+```Bash
+# Opening multiple "windows" inside of the same terminal
+tmux
+screen
+# Ctrl + B, c - create, n - navigate, d - detach
+tmux new -s "TMP"
+tmux list-sessions
+tmux a "TMP"
+```
+
+##### vi
+
+3 modes:
+- NAVIGATE
+- INSERT
+- EXECUTE
+
+###### NAVIGATION
+
+```
+Esc Esc Esc : q !
+
+Ctrl + C - will leave file.swp - with unsaved changes
+
+H J K L = arrows, up and down go by line (EOL based, not visual)
+
+gg - go to the first line
+G - go to the last line
+[N]G - go to line N
+:N go to line N
+/pattern + Enter - search for word descending, n to go the next occurence, N to go to
+/?pattern - search for word ascending, n to go the next occurence, N to go to
+
+0 - go to the beginning of a line
+$ - go to the end of the line
+w - jump by word/next word
+
+u - undo
+. - repeat
+
+Go to Nth word:
+[N]w next word
+[N]b previos word
+
+US KB ñ = :
+
+dd - delete line (cut)
+dw - delete word (cut)
+
+Ndd - delete N lines (cut)
+Ndw - delete N words (cut)
+```
+
+p - paste after
+p - paste before
+
+y - yank
+[N]yy - copy N lines
+[N]yw - copy N words
+
+###### INSERT
+
+To navigate - exit INSERT mode
+
+To enter into insert mode:
+i - insert text in cursor position
+a - insert text after cursor
+o - insert new line after current
+
+I - insert text in the beginning of current line
+A - insert text in the end of the line
+O - insert new line before current
+
+###### EXECUTION
+
+:w - Write/Save
+:q - Quit/Exit
+:w [PATH] - Save as
+ZZ  - Save & quit
+:! command - open shell and run command
+:r! command - open shell, run command and return output into document
+:s/pattern1/pattern2 - replace in current line
