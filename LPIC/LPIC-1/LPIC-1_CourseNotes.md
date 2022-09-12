@@ -455,4 +455,152 @@ O - insert new line before current
 ZZ  - Save & quit
 :! command - open shell and run command
 :r! command - open shell, run command and return output into document
-:s/pattern1/pattern2 - replace in current line
+:s/pattern1/pattern2 - replace first occurrence in current line
+:s/pattern1/pattern2/g - replace all occurences in current line
+:1,$s/pattern1/pattern2/g - replace all occurences in all lines
+
+## DAY04
+
+screen & tmux
+
+grep
+
+```Bash
+echo "Este o este estereo estereotipo" | grep -E '((Est*)|(est*))'
+# sin -E
+echo "Este o este estereo estereotipo" | grep 'Este\|este'
+# -i = case insensitive
+echo "Este o este estereo estereotipo" | grep -i 'este'
+# -w = search for word
+echo "Este o este estereo estereotipo" | grep -iw 'este'
+# -o = print  only  the  matched  (non-empty) parts of a matching line, with each such part on a separate output line
+echo "Este o este estereo estereotipo" | grep -io 'este'
+# count pattern match
+echo "Este o este estereo estereotipo" | grep -iwo 'este' | wc -l
+# -c = count lines with matching pattern (only lines, no matter how much it repeats per line)
+echo "Este o este estereo estereotipo" | grep -iwc 'este'
+# -q = quiet
+# state variable, exit 0 (match found), exit 1 (match not found), exit 2 - error
+grep -q 'este' info.txt
+
+# -B n = show N lines preceding to match
+grep -B 1 -iw 'banc[ao]' 
+
+# recursive search through files for match
+grep -r 'nameserver' /etc/
+# also show line number
+grep -nr 'nameserver' /etc/
+
+# egrep, fgrep, rgrep = obsolete commands
+# egrep = grep -E, fgrep = grep -F, rgrep = grep -r
+
+# vi
+# show lines : set line
+
+# sed - replacements
+# by default sed replace only 1st match on the line
+
+sed s/[Ee]ste/norte info.txt
+
+# Replace e with E on every line which has "b"
+sed '/b/' 's/e/E/' colors.txt
+```
+
+```template.conf
+<VirtualHost *:80>
+    ServerName template.com
+    ServerAlias webmaster@template.com
+
+    DocumentRoot /var/www/html/template
+
+    AccessLog /var/log/apache2/template-access.log
+    ErrorLog /var/log/apache2/template-error.log
+</VirtualHost>
+```
+
+```Bash
+# Links - 2 types: soft & hard
+# soft/weak link - direct access (via small independent shortcut file which takes small amount of disk space)
+# hard link - do not use disk space
+df -hT
+# create 2 GB file
+dd if=/dev/zero of=file1 bs=1M count=2000
+ln file1 file2
+ln -s file1 file_soft
+ls -lh
+rm file1
+ls -lh
+# inode - Linux FS works with inodes - structures which contain files' metadata which include pointers list
+# Linux must allocate an index node (inode) for every file and directory in the filesystem. Inodes do not store actual data. Instead, they store the metadata where you can find the storage blocks of each file’s data.
+# Check the inode number in a specific file
+ls -i
+# Check the inode usage on FSs
+df -i
+
+# Search by name
+find / -name "TestFile"
+# Search by type
+# f = file
+find / -type f
+# i = inum
+find / -type f -inum 130775 2> /dev/null
+
+# Processes in Linux
+# LPIC1 focuse exclusively on top
+top
+# top load average should be below 1
+# top KB shortcuts
+# k - kill process
+
+# swap
+# free -h to seee available memory & swap info
+# allows to see if swap is being used while RAM is unused
+free -h
+# buffers data waiting to be placed to disk - CPU maybe working on them still
+# cache data stored to disk - already processed data
+free -h -w
+
+# bashtop
+bashtop
+
+# ps - report a snapshot of the current processes, within current session
+# ps -ax - report a snapshot of the current processes, within all sessions
+
+# who - Print information about users who are currently logged in.
+
+# zombie process - process which is not terminated and do not have parent process, state code Z
+# S - sleep
+ps -ax
+ps -ax -o pid,stat | grep Z
+
+ps -ax | grep ping
+
+ps -ax -o pid,ppid,tty,cmd | grep PID
+
+# zombie clear up
+kill -HUP $(ps -A -ostat,ppid | grep -e '[zZ]'| awk '{ print $2 }')
+
+# kill -2 = send signal 2 ~ Ctrl +C, do not work for processes running in foreground
+# kill -19 = pause process
+# kill -18 = resume process
+
+# jobs -  Lists the active jobs.  JOBSPEC restricts output to that job.
+# Without options, the status of all active jobs is displayed.
+jobs --help
+
+# fg PID - bring process to foreground
+
+# Kill key statuses
+2 - SIGINT
+9 - SIGKILL
+15 - SIGTERM
+18 - SIGCONT
+19 - SIGSTOP
+
+
+```
+
+```Bash
+# Loop example
+for i in apple manazana orange ; do echo $i ; done
+```

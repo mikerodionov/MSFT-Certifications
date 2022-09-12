@@ -1074,15 +1074,17 @@ Azure CycleCloud
 
 #### Why of Large-Scale Compute
 
-Big problem requires team work/splitting it into separate parts and processing by individuals.
+Big problem requires team work with splitting it into separate parts which processed by individuals in parallel with coordination between them, the same is applicable for big computational tasks.
+
+{Problem, Workers, Tools}
 
 High-Performance Compute (HPC) solutions share a common architecture
 
-- Application/Service with resource intensive/big **job** (encoding/decoding etc.)
-- **Job scheduler** splits job into smaller tasks to be execute by separate compute nodes
-- **Parallel execution** - compute nodes process tasks received from scheduler simultaneously, in parallel and output resultat to storage
-- **Tightly coupled execution** - data processed by one node, then by other and another, etc. (not parallel)
-- Frequently compute nodes may require high-throughput, low-latency connectivity (InfiniBand)
+- **Application/Service** with resource intensive/big **job** (encoding/decoding etc.)
+- **Job scheduler** - splits job into smaller tasks to be execute by separate compute nodes
+- **Parallel execution** - compute nodes process tasks received from scheduler simultaneously, in parallel and output result to a storage (contrast with tightly coupled execution)
+- **Tightly coupled execution** - data processed by one node, then by other and another, etc. (not in parallel)
+- Frequently compute nodes may **require high-throughput, low-latency connectivity** (InfiniBand)
 
 #### Azure Batch
 
@@ -1090,7 +1092,7 @@ Azure Batch key functionality
 
 - **Fully managed** cloud HPC cluster and scheduling infrastructure
 - **Built-in scheduler** - no cluster or job scheduler software to install/manage
-- **Intended for Developers** - targeted toward developers, provides tools and an API for HPC jobs
+- **Intended for Developers** - targeted toward developers, provides tools (SDK) and an API for HPC jobs
 
 Azure Batch components/architecture
 
@@ -1112,20 +1114,560 @@ Basics
 Advanced
 - Identity type - None/System assigned/User assigned
 - Public network access - Enabled/Disabled
-- Pool allocation mode - Batch service/User subscription
+- Pool allocation mode - Batch service (all batch resources will be managed for you)/User subscription (all batch resources will be managed within your subscription - you will see related VMs etc.)
 - Authentication mode
 
 #### Azure CycleCloud
 
-Azure CycleCloud Functionality
+Azure CycleCloud Functionality - service that helps to deploy familiar HPC services
 
 - **Easy deployment** - simplified provisioning and management of cloud/hybrid HPC
 - **Bring your own scheduler** - supports third-party schedulers and file systems
 - **For HPC admins** - helps admins to deploy familiar autoscaling HPC solutions
 
+Azure CycleCloud Architecture
+
+- CycleCloud Application - solution runs on a VM and contains various HPC management features; **VM with CycleCloud service** running on it.
+- Cluster Management - deploy and manage schedulers (Slurm, LSF, etc.) or file systems (BeeGFS, NFS)
+- Subscription Access - CycleCloud app **requires subscription access to manage resources**
+- App/Service - customer application/service is responsible for managing jobs through the scheduler
+
+Create Azure CycleCloud (Create a VM with CycleCloud image)
+
+Plan (Azure CycleCloud 8.1)
+
+Create a VM
+
+Basics
+- Project details
+  - Subscription
+  - RG
+- Instance details
+  - VM name
+  - Region
+  - Availability options - No infra redundancy
+  - Security type - Standard
+  - Image - Azure CycleCloud 8.1 - Gen1
+
+Azure CycleCloud Subscription management portal (runs on CycleCloud VM, you can connect over public IP of this VM)
+
+New Cluster
+- Schedulers
+  - Altair Grid Engine
+  - Grid Engine
+  - HTCondor
+  - lsf
+  - Microsoft HPC Pack
+  - OpenPBS
+  - Slurm
+- Filesystems
+  - BeeGFS
+  - NFS
+- Infra
+  - Single VM
+
+We have to create managed identity for Azure CycleCloud VM and grant to it Contributor rights over subscription.
+
+#### Azure Batch VS Azure CycleCloud
+
+AzureBatch - turn on/ready to go service
+CycleCloud - an easy way to deploy familiar/existing HPC products
+
 ### Isolating Compute-Based Solutions
 
+Multi-Tenant Services
+Dedicated Hosts
+App Service Environment
+Isolating Containers
+
+#### Multi-tenant services
+
+Azure > Azure Hypervisors (shared) > Hosting Environment (shared) > Various Customers Apps
+
+#### Dedicated Hosts
+
+Key Functionality
+
+- Dedicated infra - physical host infra is dedicated to a single customer (not shared)
+- Greater control - greater manual control over maintenance (e.g. patching, reboots scheduling etc.)
+- Hybrid licensing - allows leverage existing software license agreements
+
+Isolating VNs with dedicated hosts
+
+- **Dedicated host** - physical server in an Azure datacenter, supporting a specific family of VMs
+- **Support for VMs and Scale Sets** - deploy VMs or VMSSs (Windows/Linux)
+- **Host group** - group of one or more dedicated hosts, helps to control HA
+
+Create dedicated host
+
+- Basics
+  - Project details
+    - Subscription
+    - RG
+  - Instance details
+    - Name
+    - Location
+  - Hardware profile
+    - Host group (for grouping multiple dedicated hosts/managing HA)
+    - Size family - Standard DASv4 Family Type 1, Standard DCSv2 Family Type 1, etc. - availability depends on selected region
+    - Fault domain - N (number of physical rack where host is located)
+    - Automatically replace host on failure - Y/N
+  - Save money
+    - Already have Windows Server licenses - Y/N
+    - Already have SQL Server licenses - Y/N
+- Tags
+
+ **Fault domain** - Just like VM in a scale set or availability set, hosts in different fault domains will be placed on different physical racks in the data center. When you create a host group, you are required to specify the fault domain count. When creating hosts within the host group, you assign fault domain for each host.
+
+**Billing starts immediately** after dedicated host creation - irrespectively whether you use it or not.
+
+- Maintenance control
+  - Enable/disable
+  - Create new default config
+  - Use existing config
+- Instances
+  - Add VM/VMSS to dedicated host
+
+#### App Service Environments
+
+Key functionality
+
+- **Dedicated environment** - deployed to a VNET (and dedicated hosts) in your environment
+- **High scale** - leverage greater scale-out limits for hyperscale
+- **Secure access** - acces can be configured for either internal or external use
+
+Isolating Apps with App Service Environment (ASE)
+
+- Hosting - underlying hosts are multi-tenant, unless using dedicated hosts
+- App Service Plan (ASP) - an app is deployed to an ASP, which is deployed to an ASE
+- Network - deployed to a customer's VNET for private connectivity (App Service was initially focused on network isolation)
+- Accessibility - can be accessed publicly (external ASE) or publicly (public ASE)
+
+Creating App Service Environment (v2/v3)
+
+v3 - is the latest version which supports bot network and host compute isolation
+
+Creating App Service Environment v3
+
+- Basics
+  - Project Details
+    - Subscription
+    - RG
+  - Instance details
+    - App Service Environment Name - NAME.appserviceenvironment.net (INT) / NAME.p.azurewebseites.net (EXT)
+    - Virtual IP
+      - Internal - the endpoint is an internal load balancer (ILB ASE)
+      - External - exposes the ASE-hosted apps on an internet-accessible IP address
+- Hosting
+  - Hardware isolation
+    - Enabled - ASE hosted on 2 dedicated physical hosts
+    - Disabled - ASE hosted on virtual isolated hardware
+  - Zone redundancy
+    - Enabled - ASE and apps will be zone redundant (minimum app service plan instance count = 3)
+    - Disabled - ASE and apps won't be zone redundant (minimum app service plan instance count = 1)
+- Networking
+  - VNET
+  - Subnet
+- Tags
+
+Once ASE is created you can deploy apps into it
+
+- App Service plans
+- Apps
+
+Wnen creating web app you will be able to **select ASE from Region drop down**, the rest is the identical to creating new web app
+App Service plan - you will be selecting from Idolated plans group (offers greater resources scale/quantity)
+
+#### Isolating Containers
+
+- Azure Container Instances (ACI) - instances are isolated, but share hypervisors; containers are isolated from each other unless container groups are used
+- Azure Kubernetes Service (AKS) - shares hypervisors, but you can use your own VMs to run containers
+
+Both ACI and AKS are services which run on top of multi-tenant hypevisors.
+
+- Dedicated host - provides support for AKS and ACI (more recent addition to these services) - you will be selecting it through Region drop down during resource provisioning stage
+
+For any compute service dedicated hosts option provides hypervisor level isolation.
+
+### Design a compute strategy
+
+#### Scenario/requirements > possible solution(s)
+
+Need to use familiar HPC tools without re-training and use existing HPC scheduler (Slurm) > Azure CycleCloud (allows to deploy and manage schedulers - Slurm, LSF, etc. or file systems -BeeGFS, NFS)
+Web app requires OS level customization > prevents us from going for PaaS solution (e.g. Azure App Service), and leave us only with VM based solutions
+Tolerate DC failure > Use multi-zone VMSS (within VNET attached to a region and spanning all AZs within that region)
+Mimimize operational costs > Configure VMSS autoscale
+
+#### Recap
+
+##### Comopute Isolation
+
+**Azure Dedicated Host** allows a physical host to be dedicated to an individual customer. This ensures there are no workloads virtualized by the hypervisor other than those belonging to the customer. Dedicated Host is increasingly supporting other services also, such as App Service Environment v3, Azure Kubernetes Service, and Azure Container Instance.
+
+**App Service Plan Dedicated tier** - the Dedicated compute tier (Basic, Standard, Premium plans) **runs apps on dedicated Azure virtual machines**. No other customers share this compute with you. However, it does still operate on shared hypervisors. This tier does **support VNet Integration**, but it **does not deploy directly to a virtual network**.
+
+**App Service Plan Isolated tier** - an App Service Environment (ASE) can be used to deploye apps to to your VNET and a hypervisor dedicated to you (when combined with Dedicated Host), an ASE is deployed to App Service plans on the Isolated tier.
+
+##### VM based compute
+
+Reasons to use of VM based compute solutions:
+
+- Need to migrate an existing app to the cloud having access only to installers and not to the original source code (with possible exception for containerized apps which will allow you to use ACI/AKS)
+- Need for full control on OS level
+- Need to perform lift-and-shift migration of non cloud-optimized solution
+
+Deploying to Azure PaaS (e.g., Azure App Service and Azure Functions) requires having the original source code.
+
+VMSS
+
+- Can be deplpoyed across multiple AZs within a single region; a VMSS can be deployed across multiple AZs within a single region. This helps to protect solutions from data center (availability zone) failure.
+
+AZ = DC
+
+##### AKS and ACI
+
+Reasons to use AKS instead of ACI:
+
+- Your containerized solution requires full orchestration, self-healing, load balancinf, and dynamic scale
+
+Reasons to use ACI instead of AKS:
+
+- You have a containerized solution that requires persistent storage and per-second billing
+- You have a containerized solution, but you don't require full-fledged orchestration
+
+ACI is a **simple on-demand container execution environment** which does **support persistent storage** and **billed on a per-second basis**. ACI is designed for deploying a single pod of containers on demand, quickly without support for full-fledged container orchestration.
+
+ACI can share network and storage when using container groups. **Container groups** allow a collection of containers to be scheduled on the same host. Containers in the container group share resources, local network, and storage volumes. **This is like a pod in Kubernetes**.
+
+##### Azure App Service
+
+Azure App Service Features
+
+- Ability to schedule or trigger a program or script (WebJobs)
+- Deployment slots for continous deployment
+- Built-in authentication and authorization functionality (Easy Auth)
+
+Azure App Service supports **WebJobs** - functionality which allows a program or script to be run by schedule or trigger; such tasks are commonly run in the background as part of an overall application solution.
+**Deployment slots** allow developers to deploy an app to a staging environment, perform validation and testing, and then easily swap the staging slot to production when ready; **requires a Standard App Service plan or higher**.
+App Service includes built-in authentication and authorization functionality (**Easy Auth**) which supports sign-in providers such as Azure AD, Facebook, and Google.
+
+##### HPC - Azure Batch / Azure CycleCloud
+
+Azure Batch key features
+
+- Provides job scheduling capabilities to developers through SDKs and an API
+- Provides access to large-scale parallel compute without having to worry about clusters or software installation
+
+Azure Batch is an HPC job scheduler as a service; everything is managed and maintained for you by Microsoft. There is no job scheduler software to install/manage.
+
+Azure CycleCloud = service for HPC which allows minimal changes to an existing on-premise HPS process/solution
+
+**Azure CycleCloud** is aimed at administrators and users of existing HPC solutions. CycleCloud **supports common third-party HPC schedulers** (Slurm, LSF) and **file systems** (BeeGFS, NFS) and helps automate and manage the deployment of an HPC cluster to Azure. This eases the transition to HPC in the cloud by allowing existing tools, processes, and understanding to be used with a cloud-based service.
+
+##### Azure Functions
+
+Azure Functions VNET connectivity support
+
+- Requires Premium plan - provides VNet connectivity and other features such as pre-warmed workers and greater CPU/memory.
+
+Azure Functions plans:
+- Consumption (Serverless)
+- Functions Premium
+- App service plan
+
 ## Design a Networking Strategy
+
+### Intro
+
+Key Concepts
+Virtual Networks
+Integrated Networks
+Hybrid Networks
+Service Networking
+
+Virtual Networks
+
+- Isolated Networks - secure, private, and isolated from other virtual networks; fully isolated from other VNETs by default
+- Default Routing - intra-VNET traffic, and outbound Internet is routed = connectivity within VNET + outbound Internet connectivity
+- Multi-Zone Deployments - supports zone-based resources within a region / regional service, spans AZs within a region - no need to explicitly pin it to AZs within a region
+
+#### Hub-and-Spoke Network Arcitecture
+
+Hub-and-Spoke VNETs - Common network design for sharing centralized network resources and access
+Spoke VNETs connected to hub VNET via peering
+If all shared resources are hosted in a hub VNET we can manage FW & ExpressRoute and other things from one central location - hub VNET
+Essentially we centalize access and access control
+
+#### Public Accessebility for Azure Services
+
+- Many Azure services are built for public accessibility (KV, web, storage, SQL) = have public end points
+
+### VNETs recap
+
+- Routing
+- Network Security Groups (NSGs)
+- VNETs NAT
+
+#### Custom Routes
+
+VNET routing by default = connectivity within VNET + outbound Internet connectivity, otherwise isolated
+
+Custom Routes examples
+
+- Blocking Internet Access - using the None next hop type, we can block internet access
+- Forcing Traffic via Another Address - using various next hop types we can force trafic to specific destination, e.g. route it through firewall
+- Configuration - routes within a route table apply to associated subnets
+  - subnet can have only one or no route table assigned, no mutliple route tables can be assigned to the same subnet
+  - the same route table can be assigned to multiple subnets
+
+0.0.0.0/0 - wildcard for all traffic
+
+Route consist of
+
+- Name
+- Address prefix (which traffic it affects)
+- Destination - VNET gateway/VNET/Internet/Virtual Appliance/None
+
+Special Scenarios
+
+- Automatic System Routes - system routes can be automatically generated (e.g., default routes, VNET peering, service endpoints)
+- Border Gateway Protocol (BGP) - BGP can help manage dynamic routing (e.g., ExpressRoute or VPN); advertises existing routes across some existing connectivity (ExpressRoute or VPN)
+- Matching Address Prefix Routes - order of precedence is Custom > BGP > System (from highest precedence to lowest); custom always win
+
+#### Nentwork Security Groups (NSGs)
+
+- Traffic filtering - priority-based allow or deny rules are processed only until the first match is found
+- Default rules - have high humbers (=low priority so that you can overwrite them creating rules wiyh lower numbers)
+ - **DenyAllInBound** - default DENY rule 65500, Any Port, Any Protocol, Any Source, Any Destination
+ - **AllowAzureLoadBalancerInBound** - 65001, Any Port, Any Protocol, Source AzureLoadBalancer, Any Destination
+ - **AllovVnetInBound** - 65000, Any Port, Any Protocol, Source VNET, Destination VNET
+- Assignment - assigned to a subnet or NIC, we can allow something on VNET level, but then block it for particular VM on a NIC level; NSG attached to VNET is assigned/applied to all the devices within it
+
+NSGs considerations
+
+- Public IP addresses - standard public IP addresses block access by default, basic IPs do not
+- Stateful rules - NSG allow rules will automatically allow reply traffic
+- Default outbound access - the platform provides outbound internet access (without a public IP)
+
+#### VNET NAT
+
+- Shared outbound internet - replaces the need for individual public IP addressing for outbound connectivity (unlike default outbound access allowing control over public IP addresses)
+- Public IP addressing - creates virtual NAT appliance with a single standard public IP/also supports public IP prefixes (pool of public IP addresses which will be used by your VNET devices)
+- Configuration - one NAT can be **associated with one or more subnets within a VNET**
+
+### Integrated Networks
+
+VNET Peering
+Service Endpoints
+Private Link
+
+#### VNET Peering
+
+VNET routing by default = connectivity within VNET + outbound Internet connectivity, otherwise isolated
+
+VNET peering provides secure connectivity between peered VNETs
+
+VNET peering
+
+- Fast, low-latency private IP connectivity
+- Supports cross-subscription connectivity
+- Supports cross-region connectivity
+- Address spaces cannot overlap
+- Does not support transitive routing - your route only can go from vnet to directly peered VNET not transiting another VNET in the middle (for that you would need FW or router appliance)
+
+Configure VNET peering
+
+VNET1, add vnet1-to-vnet2 peering
+- Peering link name
+- Traffic to remote VNET
+  - Allow (default)
+  - Block all traffic to remote VNET
+- Traffic forwarded from remote VNET
+  - Allow (default)
+  - Block traffic that originates from outside this VNET
+- VNET gateway or Route Server
+  - Use this VNET's gateway or Route Server
+  - Use the remote VNET's gateway or Route Server
+  - None (default)
+
+#### Service Endpoints
+
+- Azure PaaS service have public endpoints by default
+- Configuring service endpoints - configured per resource provider, per subnet, to provide secure connectivity
+- System routes - optimal routes are added so that all resources within a subnet use the MSFT backbone withoug going through the public internet
+- Network security - resource firewall can be configured to allow/deny traffic
+
+Being added on subnet level by means of **selecting entire resource providers** (Microsoft.Storage, Microsoft.KeyVault). Once applied you can see routes in VM NIC effective routes UI - you will see VirtualNetworkServiceEndpoint routes there.
+
+#### Private Link
+
+Secure Netwok Connectivity
+
+- Private Link Support
+  - supported Azure services
+  - customer/partner-managed solutions
+- Injects Private Endpoint with private IP into your VNET which will act as a proxy for resource access
+- **Granular security** - **configure connectivity to specific resources** (not a whole resource type)
+- Broad Accessibility through VNET ingected private IP
+  - Accessibility from on premises
+  - Access from peered VNETs
+
+Create Private Link
+- Create private endpoint - for supported MSFT services
+  - Resource within your directory or outside of it by resource ID or alias
+  - Integrate with private DNS
+- Create private link services - for customer/partner services
+
+### Connect Hub and Spoke Networks with VNet Peering
+
+**Hub and spoke** is a common network topology used to both isolate and interconnect networked resources securely.
+
+- Hub network contains secure private-network resources, managed from HQ
+- Spoke network used to provide remote management access (via jump host deployed into it)
+- Network connectivity - VNET peering and NSGs used to control access
+
+- Configure peering to allow access from spoke/jumper VNET to hub VNET
+- Configure NSGs to provide only necessary access
+
+- Configure 
+  - VNet peering
+  - Public IP addressing
+  - network security groups to configure secure RDP connectivity from a spoke network to the hub network
+
+Hub VNET NSG has deny-vnet-inbound rule.
+
+Other options to implement similar functionality - **Microsoft Defender for Servers just-in-time VM access**, **Azure Bastion service**
+
+### Hybrid Networks
+
+VPN
+ExpressRoute
+Virtual WAN
+
+#### Virtual Private Networking (VPN)
+
+Providing private, encrypted connectivity to Azure virtual networks (encrypted tunnels).
+
+Connecting on-premises/remote users to Azure - P2S (Point-to-Site) VPN
+Connecting on-premises/remote network to Azure - S2S (Site-to-Site) VPN
+
+Secure/encrypted connection over the public internet.
+
+VNET peering VS VPN
+
+| VNET Peering                                                       | VPN                                                                     |
+|--------------------------------------------------------------------|-------------------------------------------------------------------------|
+| - Designed for VNET-to-VNET connectivity                           | - Designed for hybrid connectivity (S2S, P2S)                           |
+| - Supports cross-subscription, cross-region, cross-Azure AD tenant | - Supports similar VNET connectivity (cross-subscription, cross-region) |
+| - Leverages **MSFT backbone** for private IP address connectivity  | - Requires a **public IP address for the VPN termination point**        |
+| - Used for private, low-latency, limitless bandwidth connectivity  | - Used where encryption and/or transitive routing is needed             |
+
+#### ExpressRoute
+
+ExpressRoute provides more direct and secure connection to Microsoft cloud services.
+
+Connection between on-premises and Azure via data center partners/NSPs. Secure, private network connectivity.
+
+Allows connect to
+
+- Azure VNETs
+- Microsoft services - Microsoft Peeering to connect to Microsoft 365 services
+
+ExpressRoute VS VPN
+
+
+| ExpressRoute                                                  | VPN                                                                       |
+|---------------------------------------------------------------|---------------------------------------------------------------------------|
+| - Provides secure connectivity to VNETS and Microsoft 365     | - Provides secure connectivity to VNETs only                              |
+| - Does not traverse the public inertnet                       | - Traverse the public internet (between the point/site and Azure)         |
+| - Does not leverage encryption by default (IPSsec and MACsec) | - Traffic is encrypted bt default as part of an end-to-end tunnel (IPSec) |
+| - Supports up to 10Gbps (100Gbps with ExpressRoute Direct)    | - Supports up to 10Gbps                                                   |
+
+#### Virtual WAN
+
+>>>
+
+### Designing Networks for Azure Services
+
+### Design a Networking Strategy
+
+### Recap
+
+>>>
+#### App Service
+
+App Service VNET Integration
+
+- **App Service VNET integration provides connectivity to resources in or through a VNET**;  App Service VNET integration provides **outbound connectivity from the perspective of Azure App Service**. For inbound connectivity to an Azure App Service app, you would require a feature such as Private Link.
+- App Service VNet integration requires a supported Standard, Premium, Premium v3, or Elastic Premium App Service pricing tier
+- App Service integration is not supported in the Free or Basic App Service Plan tiers
+
+App Service app access control
+
+- Access can be limited by source IP
+  - By configuring a new app service access restriction rule
+  - By configuring a NSG rule on a subnet
+
+[Access restrictions](https://docs.microsoft.com/en-us/azure/app-service/networking-features#access-restrictions) allow you to build a list of allow and deny rules that are evaluated in priority order. It's similar to the network security group (NSG) feature in Azure networking. You can use this feature in an Azure App Service Environment (ASE).
+
+NSGs provide the ability to control network access within a virtual network. You don't have access to the VMs used to host the App Service Environment itself. They're in a subscription that Microsoft manages. However, you can restrict access to the apps in your App Service Environment (ASE) by setting NSGs on the subnet. [MSFT doccumentation](https://docs.microsoft.com/en-us/azure/app-service/environment/network-info#network-security-groups)
+
+#### Routing
+
+- Default VNET routes allow connectivity between subnets and to the internet
+
+Default VNET routes (lower number got processed first, higher last):
+ - **AllovVnetInBound** - 65000, Any Port, Any Protocol, Source VNET, Destination VNET
+ - **AllowAzureLoadBalancerInBound** - 65001, Any Port, Any Protocol, Source AzureLoadBalancer, Any Destination
+ - **DenyAllInBound** - default DENY rule 65500, Any Port, Any Protocol, Any Source, Any Destination
+
+#### NSGs
+
+- NSGs are stateful, creating an outbound allow rule will automatically allow response traffic; For example, if you create a rule that allows RDP traffic inbound, then you do not need to create a rule that allows the reply traffic back to the originating client.
+
+#### Express Route
+
+- Allows to provide network connectivity between an on-premises network and Azure VNET without using the public internet
+- Allows to provide private connectivity to Microsoft services, such as Exchange Online or SharePoint Online; ExpressRoute supports private peering (network-to-VNet connectivity) and Microsoft peering (network-to-Microsoft 365 connectivity), while VPNs can only provide connectivity to an Azure VNet, not to Microsoft 365 services
+
+- ExpressRoute works through network providers that provide connectivity to Azure without using the public internet
+- VPNs work over the public internet
+
+#### Service Endpoints
+
+- Provide MSFT backbone connectivity from resources in a subnet to a specified **resource provider**
+
+Service endpoints are configured at the subnet level to a specified resource provider (e.g., Microsoft.Storage). This then establishes a system route for the subnet to the given resource, which ensures traffic from resources in the given subnet will use the Microsoft backbone to reach the given resource type.
+
+#### Private Link
+
+- Allows to provide access to an Azure service using a private IP address
+- Allows to provide secure access to a specific resource, instead of an entire resource type
+
+Private Link allows the creation of a private endpoint. The private endpoint is effectively a network interface placed within your selected virtual network with a private IP address. This allows you to create a private IP address that can be used to access an Azure service (or customer-managed solution). Service endpoints do not create private IP addresses for services.
+
+Private Link allows more granular connectivity to be enabled than is possible with service endpoints. For example, with Private Link you can provide a private IP address to a specific storage account in your subscription, whereas with service endpoints, you are enabling a backbone route to all resources of a specific type (i.e., all Microsoft storage accounts that are accessed from the configured subnet).
+
+#### Azure Vitual WAN
+
+- Supports fully meshed, any-to-any hub connectivity
+- Simplifies centralized management of a hub and spoke VNET architecture
+
+When using the Azure Virtual WAN Standard SKU, fully meshed hub interconnectivity is supported. This includes branch-to-Azure, branch-to-branch, and VNet-to-VNet connectivity.
+
+Azure Virtual WAN provides a single management pane of glass to help simplify the hub-and-spoke VNet architecture. This includes hub-to-hub interconnectivity across regions.
+
+#### VNET Peering
+
+- VNET peering rpovides private IP address connectivity between VNETs
+- Network traffic between VNETs is private and kept on MSFT backbone network
+- VNET peering does not provide transitive routing by default
+
+VNet peering leverages the Microsoft backbone to provide low-latency, high-bandwidth interconnectivity between resources on different VNets.
+
+VNet peering helps to provide VNet-to-VNet connectivity so that resources on different VNets can communicate with one another without having to go over the public internet. That is to say that communication is allowed by private IP addresses.
+
+VNet peering does not provide transitive routing. For example, if you have two VNets peered to the same VNet (e.g., SPOKEVNET1 to HUBVNET1, and SPOKEVNET2 to HUBVNET1), this does not allow connectivity between SPOKEVNET1 and SPOKEVNET2 via HUBVNET1. This is possible when using routing, such as an NVA (Network Virtual Appliances) or when configured through Azure Virtual WAN, but it is not supported by default.
 
 ## Design Connectivity and Security
 
