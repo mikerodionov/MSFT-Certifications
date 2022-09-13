@@ -495,7 +495,8 @@ grep -nr 'nameserver' /etc/
 # egrep = grep -E, fgrep = grep -F, rgrep = grep -r
 
 # vi
-# show lines : set line
+# show line number - :set number
+# hide line number - :set nonumber
 
 # sed - replacements
 # by default sed replace only 1st match on the line
