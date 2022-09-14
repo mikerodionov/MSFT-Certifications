@@ -604,3 +604,168 @@ jobs --help
 # Loop example
 for i in apple manazana orange ; do echo $i ; done
 ```
+
+## DAY05
+
+File permissions
+
+chmod
+
+9 bits, 3 groups [---][---][---]
+
+- owner rwx
+- group owner rwx
+- others rwx
+
+```Bash
+# To see user ID and user's groups IDs
+id username
+# Remove execute rights
+sudo chmod -x /usr/bin/firefox
+# View permissions
+# Current dir
+ls -ld
+# Specific file within current dir
+ls -ld file1.txt
+# X permission required to traverse directory content ~ access to a directory (user will be able to view directory contentent but not to enter into it
+# In Linux directory is a file which contains 2 columns - resource/file name and corresponding i-node number
+# Root directory is always i-node 2, all others have random number
+# To view file in directory we look into folder i-node and then move on to file i-node
+# Directory R = check directory content
+# Directory X = access directory conten
+```
+
+Permission management - symbolic notation or base-8 notation (0-7)
+
+| base-8 | binary | RWX |
+|--------|--------|-----|
+| 0      | 000    | --- |
+| 1      | 001    | --x |
+| 2      | 010    | -w- |
+| 3      | 011    | -wx |
+| 4      | 100    | r-- |
+| 5      | 101    | r-x |
+| 6      | 110    | rw- |
+| 7      | 111    | rwx |
+
+```Bash
+# Change file owner
+chown user file
+```
+
+Symbolic notation
+
+Useful when you need to add/remove permissions for entity
+
+echo 'echo "Hello world!"' > script.sh
+chmod +x script.sh
+./script.sh
+
+Entities
+u - User
+g - Group
+o - Owner
+
+Operations
++ - add
+- - remove
+= - set
+
+Permissions
+r - Red
+w - Write
+x - Execute
+
+./ - reference to current directory
+
+```Bash
+# Look for files with 777 permissions
+find /etc/ -type -f perm 777
+# touch - updates 3 time stamps of existing file (access, modify, change) but not birt time stamp
+touch file1.txt
+stat file1.txt
+```
+
+Change group ownner
+
+```Bash
+# Change the group of each FILE to GROUP.
+chgrp
+# With chown
+chown :group file
+```
+
+Practice:
+
+```Bash
+# PART1
+# Obtener la MAC del interface ens3 usando el comando ip address show
+ip a show eth0 | grep -Eoh '[a-fA-F0-9]{2}(:[a-fA-F0-9]{2}){5}' | grep -v 'ff:ff:ff:ff:ff:ff'
+ip a show eth0 | grep ether | cut -d" " -f6
+ip a show eth0 | awk '/[a-fA-F0-9]{2}(:[a-fA-F0-9]{2}){5}/'
+ip a show | grep ether | awk '{print $2;}'
+# Mostrar la hora actual, solamente la hora
+# Only current hour
+date "+%H"
+# Current time HH:MM:SS
+date "+%T"
+# cut issue - column number will vary depending on region/format settings of your system
+date | cut -d' ' -f 5
+# Cambiar las minúsculas a mayúsculas de la palabra Hola
+echo "HolA" | tr a-z A-Z
+echo "HolA" | tr [:lower:] [:upper:]
+# Mostrar el contenido de /etc/passwd sustituyendo los dos puntos “:” por espacios “ ”
+cat /etc/passwd | tr ":" "  "
+sed 's/:/ /g' /etc/passwd
+# Líneas que contiene la cadena de caracteres admin en el fichero /etc/passwd
+cat /etc/passwd | grep admin
+# Muestra los campos 1, 3 y 7 del fichero /etc/passwd
+cat /etc/passwd | cut -d":" -f1,3,7
+# Muestra a partir del tercer campo del fichero /etc/passwd
+cat /etc/passwd | cut -d":" -f3-
+# Muestra el nombre de usuario, el UID y el shell del usuario pue
+cat /etc/passwd | grep mikhail | cut -d":" -f1,3,7
+# Número de líneas y de palabras del fichero /etc/passwd
+cat /etc/passwd | wc -l
+cat /etc/passwd | wc -w
+wc -lw /etc/passwd
+#Número de usuarios del sistema que utilizan /bin/bash como shell
+grep /bin/bash /etc/passwd | wc -l
+# More exact so that we look for the match before the end of the line
+grep /bin/bash$ /etc/passwd | wc -l
+# Muestra el fichero /etc/passwd en orden alfabético 
+sort /etc/passwd
+# Muestra el fichero /etc/passwd ordenado por UID en de forma inversa
+sort -k3 -t":" -n -r /etc/passwd
+# Pasar las vocales a mayúsculas de la palabra murcielago
+echo "murcielago" | tr [aeiou] [AEIOU]
+# Mostrar el contenido de la carpeta actual en formato largo, ordenado de forma ascendente por tamaño
+
+# Mostrar por pantalla las líneas que contienen comentarios en el archivo /boot/grub/grub.cfg
+# Enviar a un fichero las líneas del archivo /boot/grub/grub.cfg que no son comentarios
+# Mostrar las líneas de un fichero que contienen la palabra BADAJOZ o HUELVA, numerando las líneas de salida
+# Mostrar los ficheros que contienen la palabra "interface" en el directorio /etc/ y sus subdirectorios
+# Buscar los 5 municipios con mayor superficie
+# Buscar cuantos municipios hay en la provincia de Tarragona
+
+# PART2
+Muestra un salto de línea
+Muestra una tabulación
+Muestra las líneas del fichero /etc/network/interfaces numerándolas
+Muestra las líneas del fichero /etc/network/interfaces numerándo sólo las líneas con contenido
+Muestra las primeras 7 líneas del fichero /etc/passwd
+Muestra las últimas 7 líneas del fichero /etc/passwd
+Muestra las primeras 3 líneas de todos los ficheros .log del directorio /var/log
+Busca dentro de los ficheros del directorio /var/log el patrón root
+Ordenar, en orden inverso, las líneas del fichero /etc/passwd
+Ordena el fichero /etc/passwd utilizando el campo UID como criterio de ordenación
+Calcula el número total de titulos que hay en todos los ficheros del directorio /usr/share/data/peliculas/, descartando títulos repetidos
+Indica el número de veces que aparece la palabra "molino" en el fichero "el_quijote.txt"
+Dividir el fichero ripe.db en ficheros de 10M
+Buscar la ubicación del comando fdisk dentro de todo el sistema
+Identificar la versión del kernel que estamos usando
+```
+
+echo $$ - returns PID of bash
+
+## DAY06
