@@ -1546,21 +1546,21 @@ Virtual WAN
 
 #### Virtual Private Networking (VPN)
 
-Providing private, encrypted connectivity to Azure virtual networks (encrypted tunnels).
+Providing private, encrypted connectivity to Azure virtual networks (encrypted tunnels) **across the internet**.
 
-Connecting on-premises/remote users to Azure - P2S (Point-to-Site) VPN
-Connecting on-premises/remote network to Azure - S2S (Site-to-Site) VPN
+Connecting on-premises/remote users to Azure - **P2S (Point-to-Site) VPN**
+Connecting on-premises/remote network to Azure - **S2S (Site-to-Site) VPN**
 
 Secure/encrypted connection over the public internet.
 
 VNET peering VS VPN
 
-| VNET Peering                                                       | VPN                                                                     |
-|--------------------------------------------------------------------|-------------------------------------------------------------------------|
-| - Designed for VNET-to-VNET connectivity                           | - Designed for hybrid connectivity (S2S, P2S)                           |
-| - Supports cross-subscription, cross-region, cross-Azure AD tenant | - Supports similar VNET connectivity (cross-subscription, cross-region) |
-| - Leverages **MSFT backbone** for private IP address connectivity  | - Requires a **public IP address for the VPN termination point**        |
-| - Used for private, low-latency, limitless bandwidth connectivity  | - Used where encryption and/or transitive routing is needed             |
+| VNET Peering                                                                    | VPN                                                                |
+|---------------------------------------------------------------------------------|--------------------------------------------------------------------|
+| - Designed for **VNET-to-VNET connectivity**                                    | - Designed for **hybrid connectivity (S2S, P2S)**                  |
+| - Supports cross-subscription, cross-region, cross-Azure AD tenant              | - Supports cross-subscription, cross-region, cross-Azure AD tenant |
+| - Leverages **MSFT backbone** for private IP address **limitless** connectivity | - Requires a **public IP address for the VPN termination point**   |
+| - Used for private, low-latency, limitless bandwidth connectivity               | - Used where encryption and/or transitive routing is needed        |
 
 #### ExpressRoute
 
@@ -1571,23 +1571,43 @@ Connection between on-premises and Azure via data center partners/NSPs. Secure, 
 Allows connect to
 
 - Azure VNETs
-- Microsoft services - Microsoft Peeering to connect to Microsoft 365 services
+- Microsoft services - Microsoft Peeering to connect to Microsoft 365 services (SharePoint Online, Exchange Online)
 
 ExpressRoute VS VPN
 
+| ExpressRoute                                                   | VPN                                                                       |
+|----------------------------------------------------------------|---------------------------------------------------------------------------|
+| - Provides secure connectivity to **VNETS and Microsoft 365**  | - Provides secure connectivity to **VNETs only**                          |
+| - Does not traverse the public inertnet                        | - Traverse the public internet (between the point/site and Azure)         |
+| - Does not leverage encryption by default (IPSsec and MACsec)  | - Traffic is encrypted bt default as part of an end-to-end tunnel (IPSec) |
+| - Supports up to 10Gbps (100Gbps with **ExpressRoute Direct**) | - Supports up to 10Gbps                                                   |
 
-| ExpressRoute                                                  | VPN                                                                       |
-|---------------------------------------------------------------|---------------------------------------------------------------------------|
-| - Provides secure connectivity to VNETS and Microsoft 365     | - Provides secure connectivity to VNETs only                              |
-| - Does not traverse the public inertnet                       | - Traverse the public internet (between the point/site and Azure)         |
-| - Does not leverage encryption by default (IPSsec and MACsec) | - Traffic is encrypted bt default as part of an end-to-end tunnel (IPSec) |
-| - Supports up to 10Gbps (100Gbps with ExpressRoute Direct)    | - Supports up to 10Gbps                                                   |
+ExpressRoute - extend your on-premises networks to the Microsoft cloud over a private connection with the help of a connectivity provider
+ExpressRoute Direct - connect directly to the Microsoft global network. Dedicated dual capacity is available in 10 Gbps and 100 Gbps
+Azure ExpressRoute Global Reach - link circuits together for a private connection between your on-premises networks. If you have multiple circuits linking your branch offices to Microsoft, establish Global Reach connections that allow them to exchange data directly.
+
+[ExpressRoute](https://azure.microsoft.com/en-us/services/expressroute/#features) - Use Azure ExpressRoute to create **private connections between Azure datacenters and infrastructure on premises or in a colocation environment**. ExpressRoute connections **don't route through the public internet**, and they **offer more reliability, faster speed, and lower latency** than typical internet connections. In some cases, using ExpressRoute connections to transfer data between on-premises systems and Azure gives you significant cost benefits.
+
+[ExpressRoute Direct](https://docs.microsoft.com/en-us/azure/expressroute/expressroute-erdirect-about) gives you the ability to connect directly into Microsoft’s global network at peering locations strategically distributed around the world. ExpressRoute Direct provides dual 100 Gbps or 10-Gbps connectivity, which supports Active/Active connectivity at scale. You can work with any service provider for ER Direct.
 
 #### Virtual WAN
 
->>>
+Azure Virtual WAN helps to automate and optimize connectivity using the tub-and-spoke network architecture/topology. It creates SDN for simplified management on a per region basis.
+
+We have Hub VNET where out resources and controls are centralized at the centet with spoke VNETS connected to it via VNET peering, as well as (possibly) remote users, remote offices connected to it via ExpressRoute/S2S/P2S.
+
+Allows far more simplified and streamlined experience for branch-to-branch, branch-to-Azure, VNET-to-VNET connectivity within our Virtual WAN.
 
 ### Designing Networks for Azure Services
+
+VNET-native services
+VNET integration
+Resource Firewalls
+
+#### VNET-native services
+
+VNET-native services are services which get deployed into VNETs.
+>>>
 
 ### Design a Networking Strategy
 

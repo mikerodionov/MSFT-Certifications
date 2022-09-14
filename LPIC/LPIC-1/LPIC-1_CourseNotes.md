@@ -592,13 +592,12 @@ jobs --help
 # fg PID - bring process to foreground
 
 # Kill key statuses
-2 - SIGINT
-9 - SIGKILL
-15 - SIGTERM
-18 - SIGCONT
-19 - SIGSTOP
-
-
+# 2 - SIGINT - the signal sent when we press Ctrl+C. The default action is to terminate the process. However, some programs override this action and handle it differently; "interruption request sent by the user"
+# 9 - SIGKILL - "kill"; When a process receives SIGKILL it is terminated. This is a special signal as it can’t be ignored and we can’t change its behavior.
+# We use this signal to forcefully terminate the process. We should be careful as the process won’t be able to execute any clean-up routine.
+# 15 - SIGTERM - "exit"; terminate the process but specifically requesting to finish it, SIGTERM is the default signal when we use the kill command. When we send SIGTERM, the process sometimes executes a clean-up routine before exiting and it also can be handled to ask for confirmation
+# 18 - SIGCONT - "continue" 
+# 19 - SIGSTOP - "pause"
 ```
 
 ```Bash
