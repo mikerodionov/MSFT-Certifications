@@ -1546,7 +1546,7 @@ Virtual WAN
 
 #### Virtual Private Networking (VPN)
 
-Providing private, encrypted connectivity to Azure virtual networks (encrypted tunnels) **across the internet**.
+Providing private, encrypted connectivity to Azure virtual networks (encrypted tunnels) **across the internet**. Private connectivity over private IPs (but requires public IP for VPN termination point). You can also use VPN to arrange VNET to VNET connectivity, although VNET peering is used more frequently for that.
 
 Connecting on-premises/remote users to Azure - **P2S (Point-to-Site) VPN**
 Connecting on-premises/remote network to Azure - **S2S (Site-to-Site) VPN**
@@ -1562,9 +1562,13 @@ VNET peering VS VPN
 | - Leverages **MSFT backbone** for private IP address **limitless** connectivity | - Requires a **public IP address for the VPN termination point**   |
 | - Used for private, low-latency, limitless bandwidth connectivity               | - Used where encryption and/or transitive routing is needed        |
 
+Transitive routing - when traffic is routed through an intermediate (virtual) network.
+In Azure, peer-to-peer transitive routing describes network traffic between two virtual networks that is routed through an intermediate virtual network. I.e. when source and target VNETs are not directly peered with each other.
+VNET peering in Azure is a non-transitive relationship between 2 VNETs. In Azure, peer-to-peer transitive routing between two VNETs is routed through an intetmediate VNET with a router.
+
 #### ExpressRoute
 
-ExpressRoute provides more direct and secure connection to Microsoft cloud services.
+ExpressRoute provides more direct and secure connection to Microsoft cloud services. 
 
 Connection between on-premises and Azure via data center partners/NSPs. Secure, private network connectivity.
 
@@ -1580,7 +1584,7 @@ ExpressRoute VS VPN
 | - Provides secure connectivity to **VNETS and Microsoft 365**  | - Provides secure connectivity to **VNETs only**                          |
 | - Does not traverse the public inertnet                        | - Traverse the public internet (between the point/site and Azure)         |
 | - Does not leverage encryption by default (IPSsec and MACsec)  | - Traffic is encrypted bt default as part of an end-to-end tunnel (IPSec) |
-| - Supports up to 10Gbps (100Gbps with **ExpressRoute Direct**) | - Supports up to 10Gbps                                                   |
+| - Supports up to 10Gbps (**100Gbps** with **ExpressRoute Direct**) | - Supports up to 10Gbps                                                   |
 
 ExpressRoute - extend your on-premises networks to the Microsoft cloud over a private connection with the help of a connectivity provider
 ExpressRoute Direct - connect directly to the Microsoft global network. Dedicated dual capacity is available in 10 Gbps and 100 Gbps
@@ -1592,7 +1596,7 @@ Azure ExpressRoute Global Reach - link circuits together for a private connectio
 
 #### Virtual WAN
 
-Azure Virtual WAN helps to automate and optimize connectivity using the tub-and-spoke network architecture/topology. It creates SDN for simplified management on a per region basis.
+Azure Virtual WAN helps to automate and optimize connectivity using the hub-and-spoke network architecture/topology. It creates SDN for simplified management on a per region basis.
 
 We have Hub VNET where out resources and controls are centralized at the centet with spoke VNETS connected to it via VNET peering, as well as (possibly) remote users, remote offices connected to it via ExpressRoute/S2S/P2S.
 
@@ -1607,11 +1611,92 @@ Resource Firewalls
 #### VNET-native services
 
 VNET-native services are services which get deployed into VNETs.
->>>
 
-### Design a Networking Strategy
+Examples:
+- Services which gets deployed into VNET always/by default: VMs, AKS, App Service Environments (which is main differece between it and Azure App Services)
+- "Public services" which offer an option to deploy directly into VNET: ACI
 
-### Recap
+Not all VNET-native services work in the same way in terms of VNET integration. E.g.:
+- ACI can leverage VNET peering but only within the same region
+- App Service Environment v2 - had no support for global VNET peering, v3 does
+
+When you need to design solution that is private and accessible from VNET then VNET-native services are easy option to achieve that, otherwise you need to use other VNET integration options.
+
+#### VNET Integration for Services
+
+Services which provide private connectivty from VNET to public resource (i.e. inbound access to resource)
+
+- PrivateLiink (allows the creation of a private endpoint to provide a private IP address to a specific resource which suppors PrivateLink feature)
+- Service Endpoints (provide MSFT backbone connectivity from resources in a subnet to a specified **resource provider**/resource type or class)
+
+When outbound access from resource to VNET (e.g. from App Service to VNET) you will need other options which differ for each service:
+
+- For App Service - VNET Integration
+
+VNET integration for App Service
+
+- Provides inbound access to a VNET
+- Supported by Standard or Premium tiers
+- Supports function apps (not supported with consumption plan)
+- Does not support NetBIOS or SMB
+- Does not provide inbound app access (**provides outbound access from App Service to VNET**)
+
+Sample use case for App Service VNET integration you have SQL server deployed in VNET and you need your App Service to connecto to this SQL Server.
+
+App Service Networking settings in Azure Portal:
+
+- Inbound Traffic
+  - Access restriction
+  - App assigned address
+  - **Private endpoints**
+- Outbound Traffic
+  - **VNET integration** - to securely access resources available in or through your Azure VNET.
+    - Requires standard or premium app service plan
+    - You can simply select VNET in the same region
+    - VNET in a different region will require Virtual Network Gateway configured with P2S VPN
+  - Hybrid connections - enables your app to access a single TCP endpoint per hybrid connection
+    - Supported by the Basic, Standard and premium tier
+    - Uses Azure Rely service behing the scenes to create connections with on-premise resources
+  - Outbound addressess
+
+#### Resource Firewalls
+
+Many Azure services provide access control through a resource firewall.
+
+- Allows to lock-down inbound access to a (public) resource
+- Default Deny once enabled
+- Public IP allow rules
+- Private VNET allow rules (for that you generally need a service endpoint, so that your traffic goes through Azure backbone and not through the public intetnet)
+
+Access Restricitons Azure UI for App Service
+
+- When no rules added there is only default "Allow All" rule (Any Source Allow with priority 1)
+- As soon as you add some other rule default "Allow All" rule goes away, and along with your own rule default "Deny All" rule appears (Any Source Deny, priority 2147483647)
+
+Storage Account > Networking> Firewalls and Virtual Networks
+
+Allowing public IP/CIDR or VNET access with firewall
+
+- Allow access from
+  - All networks
+  - Selected networks
+    - Add existing/new VNET (selecting all or some of subnets, serivce endpoint required to )
+    - Firewall
+      - Allow public IP or CIDR
+- Network routing
+  - Microsoft network routing / Internet routing
+  - Publish network routing - Y/N
+  - Internet routing - Y/N
+
+### Design a Networking Strategy - Requirements/Solutions
+
+- Migrate web app with code which you own to a cloud-based, scalable PaaS service to minimize admin overheads = Azure AppService for hosting
+- Provide web app with support of staging updates = Azure AppService deployment slots
+- Enable connectivity to Azure hosted web app from on-premise server/equipment via private IP address = 
+  - Express Route/private peering to connect on-premises network to VNET (VPN is not an option as traffic goes over public internet and tunnel gets terminated on public IP)
+  - Private link/endpoint to provide secure connectivity from VNET to web app
+
+### Design a Networking Strategy Recap
 
 >>>
 #### App Service
