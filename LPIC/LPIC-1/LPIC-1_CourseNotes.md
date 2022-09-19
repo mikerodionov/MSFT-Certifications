@@ -768,4 +768,132 @@ Identificar la versión del kernel que estamos usando
 
 echo $$ - returns PID of bash
 
-## DAY06
+## DAY06 19.09.2022
+
+### Topic 102: Linux Installation and Package Management
+
+#### 102.1 Design hard disk layout
+
+### Topic 104: Devices, Linux Filesystems, Filesystem Hierarchy Standard
+
+#### 104.1 Create partitions and filesystems
+
+GRUB - Linux boot manager
+NTLOADER - Windows boot manager
+
+Hardware boot up
+- BIOS POST
+
+HDD physical structure
+- Spindle
+- Track t
+- Sector s
+- Cylinder c
+- Platter
+- Arm
+
+SSD also have physical sectors - blocks, 512 bytes
+
+Parked read-write head are alwats in 0/0/0 (track/sector/cylinder)
+
+1st sector of disk is called MBR and it stores boot loader.
+
+UEFI
+
+[About Solid State Drives (SSD)](https://www.oo-software.com/en/docs/whitepaper/whitepaper_ssd.pdf)
+
+SSD layout
+
+In contrast to the hard disk, a SSD consists of semiconductor memory building blocks, it contains no mechanical parts. The smallest unit of an SSD is a page, which is composed of several memory cells, and is usually 4 KB in size. Several pages on the SSD are summarized to a block. A block is the smallest unit of access on a SSD. Currently, 128 pages are mostly combined into one block; therefore, a block contains 512 KB.
+
+Hard disk alignment
+
+CHS (cylinder head sector) alignment
+
+The alignment on cylinder head sector indicates an addressing method that introduces the geometry of the hard disk with the hard disk controller. This allows it to read data from a disk or write to one.
+
+SSD alignment
+
+Unlike hard disks, SSDs use a different algorithm to determine the first logical sector. The data are always read and written in blocks. Therefore, partitions / volumes need to always be aligned in blocks on SSDs. From Microsoft Windows Vista on a non - CHS orientation is supported by Windows. In the registry under
+„HKEY_LOCAL_MACHINE\SYSTEM\CURRENTCONTROLSET\SERVICES\VDS\ALIGNMENT“ are default values, which can be modified by the administrator. From a disk size of 4 GB on, the values stored are 1 MB. This value, 1 MB, is a multiple of the standard block size of 512 KB for SSDs and a multiple of 64KB at a CHS alignment. In this way, Windows ensures that both disks can work optimally.
+
+sudo fdisk -l
+
+4 primary partitions
+1 primary partition can be converted to extended, so that 3 logic partitions can be created within it
+
+###  Loop device
+
+In Unix-like operating systems, a loop device, vnd (vnode disk), or lofi (loop file interface) is a pseudo-device that makes a computer file accessible as a block device. Before use, a loop device must be connected to an extent file in the file system. The association provides the user with an application programming interface (API) that allows the file to be used in place of a block special file (cf. device file system). Thus, if the file contains an entire file system, the file may then be mounted as if it were a disk device.
+
+Files of this kind are often used for CD ISO images and floppy disk images. Mounting a file containing a file system via such a loop mount makes the files within that file system accessible. They appear in the mount point directory.
+
+```Bash
+# Partitioning
+fdisk
+gdisk
+parted
+# UI/frontend which calls other commands (fdisk & mkfs)
+gparted
+# mke2fs
+mkfs
+```
+
+### System installation and folders
+
+On Ubuntu clean install su - does not work/as root user is inactive.
+
+```Bash
+# df - Show information about the file system on which each FILE resides, or all file systems by default.
+# -h, --human-readable  print sizes in powers of 1024 (e.g., 1023M)
+# -H, --si              print sizes in powers of 1000 (e.g., 1.1G)
+df -h
+# Info on installed distro/OS
+cat /etc/os-release
+```
+
+#### The file system essential standard (FHS)
+
+Essential Programs
+Non-essential Programs
+
+```Bash
+# User's scripts - /usr/local/bin
+/usr/local/bin
+# Software from vendors - /opt
+/opt
+# Config files - /etc
+/etc
+# Users' homes (/home/username)
+/home
+# drwxr-xr-x root root
+# root user home directory /root
+ls -ld /home
+#
+/mnt
+# Removable media devices mount point
+/media
+# Insert flash drive and check
+sudo fdisk -l | grep sd
+# 
+/boot
+# mount point for detected devices
+/dev
+/dev/pts
+echo "Hola" > /dev/pts/1
+# Zeroes partition
+/dev/zero
+/dev/null
+/dev/random
+```
+
+Next class:
+
+Kernel & modulos
+
+Aliases for partitions
+linux    - 83
+swap     - 82
+extended - 05
+
+## DAY07 21.09.2022
