@@ -1698,12 +1698,11 @@ Allowing public IP/CIDR or VNET access with firewall
 
 ### Design a Networking Strategy Recap
 
->>>
 #### App Service
 
 App Service VNET Integration
 
-- **App Service VNET integration provides connectivity to resources in or through a VNET**;  App Service VNET integration provides **outbound connectivity from the perspective of Azure App Service**. For inbound connectivity to an Azure App Service app, you would require a feature such as Private Link.
+- **App Service VNET integration provides outbound connectivity to resources in or through a VNET**;  App Service VNET integration provides **outbound connectivity from the perspective of Azure App Service**. For inbound connectivity to an Azure App Service app, you would require a feature such as Private Link.
 - App Service VNet integration requires a supported Standard, Premium, Premium v3, or Elastic Premium App Service pricing tier
 - App Service integration is not supported in the Free or Basic App Service Plan tiers
 
@@ -1715,7 +1714,9 @@ App Service app access control
 
 [Access restrictions](https://docs.microsoft.com/en-us/azure/app-service/networking-features#access-restrictions) allow you to build a list of allow and deny rules that are evaluated in priority order. It's similar to the network security group (NSG) feature in Azure networking. You can use this feature in an Azure App Service Environment (ASE).
 
-NSGs provide the ability to control network access within a virtual network. You don't have access to the VMs used to host the App Service Environment itself. They're in a subscription that Microsoft manages. However, you can restrict access to the apps in your App Service Environment (ASE) by setting NSGs on the subnet. [MSFT doccumentation](https://docs.microsoft.com/en-us/azure/app-service/environment/network-info#network-security-groups)
+NSGs provide the ability to control network access within a virtual network. You don't have access to the VMs used to host the App Service Environment itself. They're in a subscription that Microsoft manages. However, **you can restrict access to the apps in your App Service Environment (ASE) by setting NSGs on the subnet.** [MSFT doccumentation](https://docs.microsoft.com/en-us/azure/app-service/environment/network-info#network-security-groups)
+
+VMs used to host App Service Environments (ASE) are in a subscription that Microsoft manages. Hence, you can't configure a NSG for your App Service Environment (ASE) VMs. 
 
 #### Routing
 
@@ -1749,7 +1750,7 @@ Service endpoints are configured at the subnet level to a specified resource pro
 - Allows to provide access to an Azure service using a private IP address
 - Allows to provide secure access to a specific resource, instead of an entire resource type
 
-Private Link allows the creation of a private endpoint. The private endpoint is effectively a network interface placed within your selected virtual network with a private IP address. This allows you to create a private IP address that can be used to access an Azure service (or customer-managed solution). Service endpoints do not create private IP addresses for services.
+Private Link allows the creation of a **private endpoint**. The private endpoint is effectively a network interface placed within your selected virtual network with a private IP address. This allows you to create a private IP address that can be used to access an Azure service (or customer-managed solution). Service endpoints do not create private IP addresses for services.
 
 Private Link allows more granular connectivity to be enabled than is possible with service endpoints. For example, with Private Link you can provide a private IP address to a specific storage account in your subscription, whereas with service endpoints, you are enabling a backbone route to all resources of a specific type (i.e., all Microsoft storage accounts that are accessed from the configured subnet).
 
@@ -1758,23 +1759,38 @@ Private Link allows more granular connectivity to be enabled than is possible wi
 - Supports fully meshed, any-to-any hub connectivity
 - Simplifies centralized management of a hub and spoke VNET architecture
 
-When using the Azure Virtual WAN Standard SKU, fully meshed hub interconnectivity is supported. This includes branch-to-Azure, branch-to-branch, and VNet-to-VNet connectivity.
+When using the Azure Virtual WAN Standard SKU, fully meshed hub interconnectivity is supported. This includes branch-to-Azure, branch-to-branch, and VNET-to-VNET connectivity.
 
-Azure Virtual WAN provides a single management pane of glass to help simplify the hub-and-spoke VNet architecture. This includes hub-to-hub interconnectivity across regions.
+Azure Virtual WAN provides a single management pane of glass to help simplify the hub-and-spoke VNET architecture. This includes hub-to-hub interconnectivity across regions.
 
 #### VNET Peering
 
-- VNET peering rpovides private IP address connectivity between VNETs
+- VNET peering provides private IP address connectivity between VNETs
 - Network traffic between VNETs is private and kept on MSFT backbone network
 - VNET peering does not provide transitive routing by default
 
-VNet peering leverages the Microsoft backbone to provide low-latency, high-bandwidth interconnectivity between resources on different VNets.
+VNET peering leverages the Microsoft backbone to provide low-latency, high-bandwidth interconnectivity between resources on different VNETs.
 
-VNet peering helps to provide VNet-to-VNet connectivity so that resources on different VNets can communicate with one another without having to go over the public internet. That is to say that communication is allowed by private IP addresses.
+VNET peering helps to provide VNET-to-VNET connectivity so that resources on different VNets can communicate with one another without having to go over the public internet and using private IP addresses.
 
-VNet peering does not provide transitive routing. For example, if you have two VNets peered to the same VNet (e.g., SPOKEVNET1 to HUBVNET1, and SPOKEVNET2 to HUBVNET1), this does not allow connectivity between SPOKEVNET1 and SPOKEVNET2 via HUBVNET1. This is possible when using routing, such as an NVA (Network Virtual Appliances) or when configured through Azure Virtual WAN, but it is not supported by default.
+VNET peering does not provide transitive routing. For example, if you have two VNets peered to the same VNET (e.g., SPOKEVNET1 to HUBVNET1, and SPOKEVNET2 to HUBVNET1), this does not allow connectivity between SPOKEVNET1 and SPOKEVNET2 via HUBVNET1. This is possible when using routing with NVA (Network Virtual Appliances) or using Azure Virtual WAN configuration, but it is not supported by default.
 
 ## Design Connectivity and Security
+
+Azure Global Infrastructure
+Highly Available Connectivity
+Network security Services
+
+Traditional and Modern Scaling for solutions
+
+- Traditionally, we provided connectivity and security for solutions that **scale up and down** (adding resources on one server)
+- A more modern approach is to **scale in and out** based on demand (changing quantity of servers)
+- More over different tiers (front, data/back-end) can be scaled independently
+- Geographically resilient solutions - scale and add redundancy at geographic level - routing/LB
+
+### Recapping Azure Global Infrastructure
+
+>>>
 
 ## Design Apps for the Cloud
 
