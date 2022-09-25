@@ -1783,13 +1783,244 @@ Network security Services
 
 Traditional and Modern Scaling for solutions
 
-- Traditionally, we provided connectivity and security for solutions that **scale up and down** (adding resources on one server)
-- A more modern approach is to **scale in and out** based on demand (changing quantity of servers)
-- More over different tiers (front, data/back-end) can be scaled independently
+- Traditionally, we provided connectivity and security for solutions on a single derver that **scale up and down** (adding resources on one server)
+- A more modern approach is to host solutions on multiple machines and **scale in and out** based on demand (changing quantity of servers)
+- Splitting solutions into different tiers (front, data/back-end) so that tiers can be scaled independently
 - Geographically resilient solutions - scale and add redundancy at geographic level - routing/LB
 
 ### Recapping Azure Global Infrastructure
 
+Positioning of services across MSFT global infrastructure is important for performance and compliance reasons.
+
+Azure Global Infrastructure
+
+- Regions
+- Availability Zones
+- Availability Sets
+
+#### Azure Regions
+
+Region - low-latency connected **data centers** hosting services (e.g. Australia East)
+
+Cross-Region Replication - **region pairs** with replication for disaster recovery (in case of region failure)
+
+Geography - geographic, data and compliance boundary
+
+#### Availability Zones
+
+Availability Zone - physically separate location within a region (data center(s))
+
+Zonal Services - some services can be pinned to a spezific AZ
+
+Zone-Redundant Services - some services are replicated across AZs (storage accounts)
+
+#### VM vs storage account from the global infta prospective
+
+VMs - zonal services/AZ aware (can be pinned to specific AZ), so you can place multiple VMs to differen AZs
+
+Storage accounts - we pick region, but under redundancy we can select ZRS or GZRS
+
+LRS - protects against server rack and drive failutes
+GRS - failover capability in a secondary region
+ZRS - data-center level failutes, recommended for HA scenarios
+GZRS - GRS + ZRS, recommended for critical data scenarios
+
+#### Availability Sets
+
+Allow to group VMs to ensure that they do not share common fault and update domains.
+
+- Specific to VMs
+- Allows to avoid that multiple VMs sit on the same VM host
+- Availability set - group of duplicate VMs created to avoid common outages
+- Fault domain - hardware that shares commoun sources of failure
+- Update domain - platform services updated/restarted by Microsoft
+- Once we create availability set MSFT ensures that they do not share fault domain/VM host and update domain
+
+When we create availability set on Availability Set we can specify
+
+- N of fault domains (max depends on region, 2-3)
+- N of update domains (max depend on region)
+- Enable use of managed disks - ensures that disks are placed/aligned so that they distributed across mutliple fault domains too
+
+### Designing Highly Available Connectivity
+
+Load Balancer
+Application Gateway
+Traffic Manager
+Front Door
+
+#### Azure Load Balancer
+
+- Distributing L4 connectivity **within a region**.
+- L4 -TCP/UDP
+- Regional service
+- Internal LB - within VNET for internal access
+- Public LB - can have public IP or IP prefix
+  - can allow inbound 
+  - can allow otbound internet access (similar to NAT)
+ 
+#### Azure App Gateway
+
+- Layer 7 application-aware LB
+- Can distribute load across multiple web apps within the same region (using host based routing - webapp1.com, webapp2.com)
+- Can LB across a single solutions brokin into multiple backend pools (using path based routing - webapp3.com, webapp3.com/videos) - to distribute between WFE and content storage backed pools
+
+Both Azure Load Balancesrand Azure App Gateway are regional specific services/LBs.
+
+#### Traffic Manager
+
+Global load balancing via DNS.
+
+- Distribute traffic to resources across Azure regions using DNS
+- Routing Methods (geography, priority)
+- Health Monitoring (to send traffic only to online resorces)
+- DNS based service, users go directly to backend resource
+
+Traffic Manager in portal UI
+
+- Endpoints
+  - Type - Azure endpoint/External endpoint/Nested endpoint
+  - Target resource type
+  - Target resource
+
+#### FrontDoor
+
+Global LB/Application Gateway.
+
+Azure Front Door is a content acceleration solution that leverages Microsft's global edge network to provide fast connectivity to your solution, across the globe.
+
+[Microsoft global network](https://azure.microsoft.com/en-us/global-infrastructure/global-network)
+
+Front Door and CDN profiles
+- Endpoint manager
+  - Domains - DNS, domains, certificates
+  - Origin groups - Origins, health, load balancing
+  - Routes - Routes, rules, caching
+    - Patterns to match (path)
+    - Accepted protocols
+    - Origin group
+    - Origin path
+    - Forwarding protocol
+  - Security - WAF, Bot detection
+- Origin groups
+
+#### Traffic Manager VS Front Door
+
+| Traffic Manager                                                       | Front Door                                                 |
+|-----------------------------------------------------------------------|------------------------------------------------------------|
+| - Supports several protocols                                          | - Supports HTTP/S                                          |
+| - Routes traffic by responding to DNS queries based on routing method | - Accelerates web traffic through Microsoft's edge network |
+| - Traffic is routed directly                                          | - Traffic is routed at the edge                            |
+| - Routing: performance, priority, weighted, geo, multi-value          | - Routing: latency, priority, weighted, session affinity   |
+| - Simply routes to healthy endpoints (pricing is accordingly simple)  | - Adds L7 features, rate-limiting, IP-based ACLs           |
+
+### Exploring Network Security Services
+
+Azure Firewall
+Web Application Firewalls
+DDoS Protection
+
+#### Azure Firewall
+
+Fully managed firewall as a service, including HA and scale.
+
+- **Network rules** - Destination, Source, Protocol, Port, e.g. DEST 0.0.0.0/0, SOURCE VM1, PROTOCOL TCP/UDP, PORT 80/443
+- **Application rules** (using FQDNS) - Target, Source, Protocol, e.g. TARGET FQDN www.domain.com, SOURCE *, PROTOCOL HTTP/HTTPS
+- **DNAT rules** (Destination NAT, to allow inbound access) - Destination, Destination Port, Translated Address, Translated Port, e.g. DEST 124.4.5.6, DEST PORT 3389, TRANSL ADDR VM2, TRANSL PORT 3389
+
+#### Azure Firewall Manager
+
+Allows managing Azure firewall ruless centrally for Azure firealls in different regions.
+
+Firewall Policies 
+
+- Create one policy and apply it to multiple firewalls
+- Policies can be per region or global
+- Policies can be inherited (from global to regional) - parent-child policy relation
+
+Firewall Policy Settings/Options in portal
+
+- Parent policy - allows to select parent policy
+- IDPS (Intrusion Detection and Protection System available only for premium policies)
+- Threat Intelligence - threat intelligence based filtering can be enabled for your firewall to alert and block traffic to/from known malicious IP addresses and domains (sourced from the Microsoft Threat Intelligence feed)
+  - Off/Alert Only/Alert and deny
+- TLS inspection
+
+**IDPS** - A network intrusion detection and prevention system (IDPS) allows you to monitor network activities for malicious activity, log information about this activity, report it, and optionally attempt to block it.
+
+#### Web Application Firewalls
+
+Protecting web applications from common vulnerabilities and exploits.
+
+Application Gateway (L7 LB)/Azure Front Door (L7 LB and content delivery acceleration)
+
+Commont vulnerabilities and exploits:
+
+- SQL injection - insertion or “injection” of a SQL query via the input data from the client to the application.
+- Cross-site scripting - a type of injection, in which malicious scripts are injected into otherwise benign and trusted websites.
+- Command injection - an attack in which the goal is execution of arbitrary commands on the host operating system via a vulnerable application.
+- HTTP request smuggling -  a security exploit on the HTTP protocol that uses inconsistency between the interpretation of Content-Length and/or Transfer-Encoding headers between HTTP server implementations in an HTTP proxy server chain.
+
+Web Application Firewall portal settings/options
+
+Application Gateway WAF Policy/Front Door WAF Policy
+
+Application Gateway WAF Policy
+- Managed Rules
+  - Managed rule set - OWASP_3.1
+- Custom rules - add custom rule
+- Associated application gateways
+
+Front Door WAF Policy
+- Managed Rules - ptotects from defined in the top-ten OWASP categories
+- Custom Rules - add custom rule
+- Associations
+
+#### Distributed Denial of Service (DDoS) Protection
+
+Protecting VNETs against DDoS attacks.
+
+DDoS protection plan
+- **DDoS Free Plan** - there is some basic protection for your VNETs in place
+- **DDoS Standard Protection plan (paid)**
+  - always on traffic monitoring
+  - adaptive tuning - determines what looks to be a normal traffic VS a possible DDoS attack
+  - attack analytics
+  - MSFT rapid response team
+  - Once bought it has to be associated with subscription (if you have multiple subscriptions within AAD tenant one single plan can be used for all of them)
+
+Azure Portal DDoS protection settings
+
+VNET > DDoS protection > DDoS Protection Standard - Disable/Enable.
+
+Disabled by default, once enabled you can either use existing DDoS protection plan or create a new one.
+
+This is expensive service (few thousound dollars per month).
+
+### Attach a Firewall to VNET
+
+- Create a firewall
+  - When creating a FW you can select AZ, if AZ selection is not available it means that selected region do not yet support AZs
+- Connect a firewall to VNET (can be done on FW creation stage - selecting use existing VNET option for VNET)
+- Create a route table
+- Create firewall rules
+  - Allow RDP rules to a server through a firewall
+  - Limit access to the internet from server to specific site(s)
+  - Allow DNS only to Google DNS servers (port 53 to 8.8.8.8, 8.8.4.4)
+
+FW Ruless (classic)
+- NAT rule collection
+- Network rule collection
+- Application rule collection
+
+DNS test
+
+```Bash
+nslookup -type=TXT test.dns.google.com. dns.google.
+# That should return "Thanks for using Google Public DNS."
+```
+
+### Design Connectivity and Security - Requirement/Solution
 >>>
 
 ## Design Apps for the Cloud

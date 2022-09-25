@@ -897,3 +897,91 @@ swap     - 82
 extended - 05
 
 ## DAY07 21.09.2022
+
+```Bash
+# -h - human readable format, -w - wide output
+free -h -w
+# Change hostname
+vi /etc/hostname
+hostname -F /etc/hostname
+#
+vi /etc/fstab
+# df - Show information about the file system on which each FILE resides, or all file systems by default.
+df
+df -hT -t ext4 -t ext3
+# 
+blkid
+# man section 5 , in Ubuntu 22.04 section 8
+# 5   File formats and conventions, e.g. /etc/passwd
+# 8   System administration commands (usually only for root)
+man fstab
+```
+### Pseudo File Systems
+
+The objects within pseudo file system structure simply represent real resources and their attributes, pseudo filesystems are generated dynamically when your computer boots.
+
+suid/nosuid
+
+FS Dependent Mount OPtion
+
+| Options               | Description                                       |
+|-----------------------|---------------------------------------------------|
+| acl/no acl            |                                                   |
+| commit=               | frequency of synchronization of journal meta data |
+| data=                 |                                                   |
+| errors                |                                                   |
+| userquota/nouserquota |                                                   |
+| nonrecovery/noload    |                                                   |
+
+
+```Bash
+#
+nmap
+```
+
+### LVM (LogicaL Volume Management)
+
+```Bash
+find . -type f -name "*lvm*"
+```
+
+LVM is an additional logical layer on top of partitions.
+
+LVM uses the acronym PV to represent a physical volume, VG for volume groups (collections of one or more physical volumes), and LV for logical volumes.
+
+- Disks > Physical volumes / Partitions
+- Logical Volumes > Volume Groups (can combine various disks)
+- Mount points
+
+```Bash
+pvcreate
+# To create a new volume group, you use the vgcreate command and specify the name you’d like to give your group and the physical partitions you want to include:
+sudo vgcreate my-new-vg /dev/sdb2 /dev/sdb3
+```
+
+### Distributions
+
+Debian and RedHat - two big parents/branches from which other distros are forked.
+
+cat /etc/os-release
+
+Ubuntu releases every 6 month 22.04 > 22.10 > 23.04 (+6M step)
+Every 2 years LTS version, i.e. version which has 3 years support, others 18 months.
+Ubuntu code names - Adjective + Animal starting from the same letter
+
+Debian - codenames Toy Story chars
+
+```Bash
+# locate VS find
+locate
+# find has lots of options - where & what to search + fitltros
+find /mnt -type f -name "abc*.pdf"
+find / -type f -name "abc*.pdf"
+find / -type f -name "abc*.pdf" -size +1M 
+find /etc/ -maxdepth -type f -name "*.conf"
+find / -maxdepth 2 -type f -name "*.conf"
+
+
+```
+
+## DAY08 26.09.2022
