@@ -2020,10 +2020,288 @@ nslookup -type=TXT test.dns.google.com. dns.google.
 # That should return "Thanks for using Google Public DNS."
 ```
 
-### Design Connectivity and Security - Requirement/Solution
->>>
+### Design Connectivity and Security - Requirements/Solutions
+
+Web app has to be deployed across the globe within 2 disting subscriptions
+
+App infra comprised of
+- VMSS which run web app
+- Public LB providing inbound access to VMSS over port 443
+
+3 instances of app
+- PROD GOV SUB1 / US West
+- PROD SUB1 / West EU, West India
+
+Global accessibility via www.appdomain.com
+> Azure Front Door
+  - Provides latency-based routing and caching
+  - Path-based routing
+> If we would need direct access to resources (not proxied) then we would need to use Traffic Manager
+Users have to access closest backen infra of web app
+Access to specific path www.appdomain.com/gov/* should go to backend within GOV SUB > Azure Front Door path-based routing
+Protect against DDoS attacks using adaptive tuning > 1 DDoS Standard Protection plan attached to both subscriptions
+
+### Design Connectivity and Security Recap
+
+#### Azure DDoS Protection Standard plan
+
+**Azure DDoS Protection Standard plan** provides adaptive tuning, always-on traffic monitoring, access to a DDoS Rapid Response team, and a cost guarantee. This is above and beyond the built-in DDoS protection.
+More information: [What is Azure DDoS Protection Standard?](https://learn.microsoft.com/en-us/azure/ddos-protection/ddos-protection-overview)
+
+#### Application Gateway VS Azure Load Balancer vs  Front Door
+
+You will be using **Application Gateway** when
+- Deploying a HA web app
+- You need to enable multi-site or path-based routing
+- Application Gateway is a regional service, so you can only disribute traffic across backends within the same region
+
+Application Gateway is layer-7 aware and supports a range of web application load balancing and distribution capabilities. It also supports many web application-specific features:
+- multi-site routing, which allows distribution to backend resources based on the hostname received in the request
+- multi-path routing, which routes traffic based on the URL within a request (e.g., abcdwidgets.com/path)
+- cookie-based session affinity
+- SSL termination
+- support for web application firewalls
+
+Application Gateway works only at the regional level providing load balancing functionality for a web application. 
+
+You will be using **Front Door** when
+- You have a **globally distributed** web app and need to ensure traffic is sent to the lowest latency backend
+- You need latency based routing - this ensures clients are routed to the closest endpoint based on network latency
+- You need **support for session affinity**
+
+You will be using **Traffic Manager** when
+- You have a **globally distributed** web app
+- You neeed **LB solutions at global scale using DNS**
+- You need **clients connect directly to backend resources**
+- You need support for **geographic routing**, which routes users to endpoints based on where their DNS queries originate
+
+Traffic Manager uses DNS to load balance traffic across the globe. Like the other load balancing services in Azure, Traffic Manager monitors backend resources to only route to healthy endpoints. Traffic Manager also uses various routing methods to determine which endpoint a user is returned in the DNS response:
+- priority
+- weighted
+- performance
+- geographic
+- multivalue
+- subnet
+
+As Traffic Manager works at the DNS layer, the only data it returns to end users is a DNS response. The DNS response includes one (or more) values of the public endpoint that a user should be directed to. The user then goes directly to this endpoint.
+
+Traffic Manager and Front Door support several similar routing methods. However, only Traffic Manager supports geographic routing (i.e., directing users to endpoints based on their geographic origin). Traffic Manager also supports multivalue and subnet-based routing. Front Door, on the other hand, supports session affinity (which Traffic Manager does not).
+
+#### Availability Zones
+
+**Availability zones (AZ)** represent a collection of datacenters within a single region.
+
+A region includes several datacenters. For regions that support AZs, an AZ represents a group of datacenters within that region (e.g., you could have three AZs within US West.)
+
+A **zonal service** is a service that can be deployed to a specific availability zone (AZ) within a given region.
+Some services (such as a virtual machine) can be deployed to a specific AZ. These are often referred to as zonal services.
+
+#### Web Application Firewall
+
+WAFs protect against common web application vulnerabilities and exploits, such as SQL injection, cross-site scripting, and more. WAF can be deployed with Application Gateways, Azure Front Door, or even Azure CDN.
+
+- Web Application Firewalls protect against common web vulnerabilities and exploits
+- Web Application Firewalls are supported by Application Gateways and Azure Front Door service
+
+#### Azure Firewall Policies
+
+- Settings defined in a parent firewall policy are inherited by all child firewall policies
+- Firewall policies can be used by Azure Firewall across regions
+
+All settings defined in a parent firewall policy are inherited by child policies. In effect, this means that parent policies can be used to override/set global configuration values. An exception to this is that **NAT rule collections aren't inherited** (because they define inbound rules specific to a given individual Azure Firewall).
+
+Firewall policies **can be associated with Azure Firewalls in any subscription associated with your account and in any region**. The only (current) limitation is that **a policy can only be associated with a parent policy that exists within the same region**.
+
+Firewall policies can be used to define settings for many different Azure Firewall features, not just the access control (e.g., network/application/DNAT) elements.
+
+More information: [Azure Firewall Manager policy overview](https://learn.microsoft.com/en-us/azure/firewall-manager/policy-overview#standard-and-premium-policies)
 
 ## Design Apps for the Cloud
+
+### Design Apps for the Cloud Intro
+
+Key Concepts - API, event-driven architecture etc.
+Messaging and integration
+Configuration and Deployment
+Caching and Delivery
+
+#### Traditional Monolithic Applications
+
+Traditional monolithic applications do it all alone.
+- Front end
+- Business Logic/Multiple Layers
+- Data layer
+
+All ot this hosted on one big server which scales up and down.
+
+Monolythic architecture is difficult to scale, and it is also does not help using best services for specific goals/sub-tasks of a solution.
+
+#### Modern Application Architectures
+
+Modern applications are often made up of multiple distinct components.
+- Front end
+- Business Logic/Multiple Layers
+- Data layer
+
+Components split to individual components/services interacting/fully abstracted through API. For such architectures APIs endpoints can become bottleneck for solution and that normally solved with queues which help to decouple solution components can accept requests/data for further processing.
+
+#### Event-driven architectures
+
+With this architecture different components respond/react to events in a queue.
+
+### Design Message-Driven Solutions
+
+Azure Queue Storage
+Service Bus Queues
+Service Bus Topics
+
+#### Azure Queue Storage
+
+Key functionality
+
+- **Simple HTTP/S access** to a queue anywhere in the world
+- **Large Queue** - allows up to 500 TB of messages in a queue; each message up to 64 KB
+- **Track message processing** progress and store transaction logs server-side
+
+Architecture
+
+- Storage Account - Azure Queue Storage is an Azure Storage service contained within a storage account
+- Queue - Sender/receiver endpoint with at-least-once delivery; up to 500 TB in size; 
+- Message - Any kind of information (TXT, JSON, XML), up to 64 KB in size; expires after 7 days
+- Messages can be deleted out of order, if you need ordered processin > Service Bus Queues
+
+#### Service Bus Queues
+
+Key functionality
+
+- **Advanced** - Provides advanced messaging over HTTP/S or **AMQP (Advanced Message Queuing Protocol)**
+- **Large messages** - Allows up to 80 GB of messages in a queue, each message is up to 100 MB
+- **Additional Features** - Guaranteed at-most-once-delivery and first-in-first-out delivery
+
+Architecture
+
+- Namespace - Container for the messaging components; pricing SKU determines features/limits
+- Queue - Guaranteed ordered queue supporting at-least-once and at-most-once delivery
+- Message - Any kind of information (TXT, JSON, XML); message up to 256 KB (100 MB for Premium)
+- Sender/Receiver
+- Receiver can connect over AMQP
+
+#### Service Bus Topics
+
+Key functionality
+
+- Queue Functionality - provides all of the Service Bus messaging functionality
+- Publish Once - messages can be delivered to a single delivery point as usual
+- Subscribe Many - messages are duplicated into many queues allowing many recipients
+
+Architecture
+
+- Namespace - Container for messaging components; pricing SKU determines features/limits
+- Topic - Provides publish/subscribe messaging; messages are sent to topic
+- Subscription - Just like a queue from receiver's perspective; receives a copy of topic messages
+- Messages - Any kind of information (TXT, JSON, XML); messages up to 256 KB (100 MB for Premium)
+- Sender/Receiver
+- Messages are duplicated into subscriptions
+
+Use case - the same message multiple receivers.
+
+#### Portal UI - Storage Queue
+
+Storage Account > Queues > Queue
+- Add message
+- Dequeue message
+- Clear queue
+
+#### Portal UI - Service Bus
+
+Service Bus Namespace > Queues > New Queue
+- Name
+- Max queue size - 1 GB
+- Max messsage size (in KB) - 1024
+- Max delivery count - 10
+- Message TTL - 14 days
+- Lock duration - 30 seconds
+- Enable auto delete on idle queue
+- Enable dead lettering on message expiration
+- Enable sessions
+- Forward messages to queue/topic
+
+#### Using queue to decouple applications
+
+MSFT quickstart examples
+- QueueSender sample app
+- QueueReceiver sample app
+
+### Design Event-Driven Soluitions
+
+Event Grid
+Event Hubs
+
+#### Event Grid
+
+Key functionality
+
+- Event Distribution - Designed for reactive event-driven solutions
+- Integrated Services - Easy integration with several Azure services (sources and handlers)
+- Enterprise Scale - Reliable, event delivery with high throughput and advanced filtering
+
+Architecture
+
+- **Event Source** - Azure service (or custom applications) that submit events to Event Grid
+- **Topic** - The endpoint for an event source to send a collection of related events to
+- **Event Subscription** - Endpoint for receiving events from; contains a copy of all events sent to the topic
+- **Event Handler** - An Azure service (or app, via web hook) that reacts to event
+
+Reactive, event-driven programming. One topic / multiple subscriptins/event handlers. For example, we can interconnect function app and storage account via Event Grid - e.g. image uploaded to container, that triggers function app to convert in to thumbnail preview and put it in another container.
+
+Configuration in Azure Portal.
+
+Function App > Integration > **Event Grid Trigger (eventGridEvent)**
+- Create Event Grid Subscription
+  - Name
+  - Event Schema
+  - Topic Details
+    - Topic Types - Event Hubs Namespaces, **Storage Accounts (Blob & GPv2)**, Azure Subscriptions, Resource Groups, Azure IoT Hub Accounts, Event Grid Topics, Service Bus Namespaces, ACR, etc.
+    - Subscription
+      - RG
+      - Resource
+  - Event Types - based on topic type, e.g. for storage account it can be blob created, blob deleted, etc.
+  - Endpoint Details
+    - Endpoint Type - Azure Function
+    - Endpoint
+- Filters
+  - Subject Filters
+    - Enable subject filtering - container name (blobServices/default/containers/images)
+    - Subject ends with - .jpg
+- Advanced filters
+  - Key - Operator - Value
+- Enable advanced filtering on arrays
+
+#### Event Hubs
+
+Key functionality
+
+- **Event Streaming** - Designed for **real-time big data ingestion and streaming**
+- **Massive Scale** - Scales to support **millions of events per second** at **sub-second latency**
+- **Rich Ecosystem** - Supports AMQP 1.0 protocol, Apache Kafka, many Azure services
+
+Event Grids - focus on responding to events with some sort of reactive program/function
+Event Hubs - focus on streaming millions of events to other services, typically used within a big data & analytics solutions
+
+Architecture
+
+- **Event Producers** - Anything that sends event data to an event hub (over HTTPS, AMQP, or Apache Kafka)
+- Event Hub and Namespace - An event hub is created within a namespace (pricing/throughput defined on a namespace level)
+- Event Receivers - Anything that reads (i.e., pulls) event data from an event hub using AMQP or Kafka
+- Partitions and Consumer Groups - An even hub has partitions (for scaling), and consumer groups (pointer for maintaining view) - to scale for/support millions of events
+
+Use cases: IoT devices streaming for Big Data analytics, anomaly detection, transaction processing. Procession of millions of events in real time.
+
+Event Hub = large event ingestion system.
+
+### Exploring Caching Services
+
+>>>
 
 ## Design Security for Apps in the Cloud
 
