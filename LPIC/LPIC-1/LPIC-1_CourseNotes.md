@@ -980,8 +980,56 @@ find / -type f -name "abc*.pdf"
 find / -type f -name "abc*.pdf" -size +1M 
 find /etc/ -maxdepth -type f -name "*.conf"
 find / -maxdepth 2 -type f -name "*.conf"
-
-
 ```
 
-## DAY08 26.09.2022
+## DAY08 28.09.2022
+
+reload VS restart: reload - re-read config file, restart - restart service (interruption, dropping active connections)
+
+```Bash
+sudo system set-default reboot.target
+# units
+# vendor - e.g. vsftpd.service etc.
+# /usr/lib/systemd/system/
+# custom
+# /etc/systemd/system -
+#
+# /run/systemd/system - units created at execution time
+# 
+systemctl isolate multi-user.target
+```
+
+[Cómo usar Systemctl para gestionar servicios y unidades de Systemd](https://www.digitalocean.com/community/tutorials/how-to-use-systemctl-to-manage-systemd-services-and-units-es)
+
+
+Installation of Linux apps
+
+sudo apt-get install ifconfig
+sudo apt-cache search ifconfig
+
+Repositories - public software servers
+
+Dependencies tree
+
+sudo apt-get install + TAB - will return total count of packets in all repositories - Display all 68655 possibilities? (y or n)
+
+In majority of cases package is called/named exactly the same as a command.
+
+sudo vi /etc/apt/sources.list
+
+After updating package list run sudo apt-get update
+
+RedHad derived systems do not have local repo cache.
+
+apt-get install apache
+
+Debian
+- apt-get update - updates list of available packages
+- apt-get upgrade - update installed packages
+
+RedHat (yum)
+- yum update - update packages + preserve obsolete packages
+- yum upgrade - update packages + delete obsolete packages
+
+## DAY09 03.10.2022
+
