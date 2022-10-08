@@ -982,7 +982,7 @@ find /etc/ -maxdepth -type f -name "*.conf"
 find / -maxdepth 2 -type f -name "*.conf"
 ```
 
-## DAY08 28.09.2022
+## 08 28.09.2022
 
 reload VS restart: reload - re-read config file, restart - restart service (interruption, dropping active connections)
 
@@ -1031,5 +1031,154 @@ RedHat (yum)
 - yum update - update packages + preserve obsolete packages
 - yum upgrade - update packages + delete obsolete packages
 
-## DAY09 03.10.2022
+## 09 03.10.2022
 
+### GRUB
+
+#### GRUB Legacy vs. GRUB 2
+
+The original version of GRUB (Grand Unified Bootloader), now known as GRUB Legacy was developed in 1995 as part of the GNU Hurd project, and later was adopted as the default boot loader of many Linux distributions, replacing earlier alternatives such as LILO.
+
+```Bash
+#grub>
+# list/identify devices
+ls
+#
+```
+
+```Bash
+# List libraries used by program
+ldd
+# LD_LIBRARY - variable to add routes to search for libreries
+# ld.so.config - config file to add additional routes to search for libraries (global)
+```
+
+### 102.4 Use Debian package management
+
+```Bash
+# directory you can add files with additional repositories to be used by APT, without the need to modify the main /etc/apt/sources.list file
+/etc/apt/sources.list
+# install a .deb package
+dpkg -i <package_name>
+# dpkg-reconfigure
+# apt-get
+# apt-cache
+```
+
+Debian Package Managers
+
+- **dpkg** - Debian package format (.deb) and its package tool (dpkg), they are widely used not only on Debian itself, but also on its derivatives, like Ubuntu and those derived from it.
+- **Advanced Package Tool (apt)** - another package management tool that is popular on Debian-based systems, can streamline many of the aspects of the installation, maintenance and removal of packages, making it much easier.
+
+The Advanced Package Tool (APT) is a package management system, including a set of tools, that greatly simplifies package installation, upgrade, removal and management. APT provides features like advanced search capabilities and automatic dependency resolution. APT is not a “substitute” for dpkg. You may think of it as **a “front end”, streamlining operations and filling gaps in dpkg functionality, like dependency resolution**.
+
+### 102.5 Use RPM and YUM package management
+
+- **RPM Package Manager (rpm)** - is the essential tool for managing software packages on Red Hat based (or derived) systems.
+- **YellowDog Updater Modified (YUM)** - yum was originally developed as the Yellow Dog Updater (YUP), a tool for package management on the Yellow Dog Linux distribution. Over time, it evolved to manage packages on other RPM based systems, such as Fedora, CentOS, Red Hat Enterprise Linux and Oracle Linux.
+
+
+## 10 05.10.2022
+
+### Well known ports (below 1024)
+
+20 - FTP / TCP
+21 - FTP 
+22 - SSH/SFTP
+23
+25
+53 - DNS / TCP - between servers/UDP - from client to server
+80 - HTTP / TCP
+110 - POP3
+443 - HTTPS
+
+```Bash
+nmap localhost
+ss -tlp4
+grep 3389 /etc/services
+```
+
+#### TCP VS UDP (Layer 4)
+
+| TCP                                           | UDP                                                                        |
+|-----------------------------------------------|----------------------------------------------------------------------------|
+| - Connection oriented                         | - Not connection oriented                                                  |
+| - Confirmation of transfer                    | - No confirmation                                                          |
+| - Re-try/re-transfer                          |                                                                            |
+| - Priority: data integrity (email, web pages) | Priority: latency/speed, loosing some packets acceptable (streaming, VoIP) |
+
+OSI/TCP-IP - layered models which split tasks/work between different layers
+
+#### ICMP (Layer 4)
+
+ICMP = Internet Control Message Protocol, ping
+
+ping - check if connectivity works/exists, response time, packet lose rate and whether target machine/device is up
+
+```
+for i in 'cat ports'
+```
+
+#### IPv4
+
+Notation: 4 octets of 8 bits = 32 bits address
+
+Address space: 2^32 = 4,294,967,296
+
+Classes:
+A 0-127 / 0 MASK 8
+B 128-191 / 10 MASK 16, max hosts = 65,534
+C 192-223 / 110 MASK 24, max hosts = 
+D 224-239 / 111
+
+8 bit mask, 24 bit host, max N of hosts 2^24 = 16,000,000
+
+Private IPs are non routable (stay within LAN), public IPs are routable.
+
+**APIPA**
+
+In computer networking, a link-local address is a network address that is valid only for communications within the subnetwork that the host is connected to. Link-local addresses are most often assigned automatically with a process known as **stateless address autoconfiguration** or **link-local address autoconfiguration**, also known as **automatic private IP addressing (APIPA)** or **auto-IP**.
+
+Link-local addresses are not guaranteed to be unique beyond their network segment. Therefore, routers do not forward packets with link-local source or destination addresses.
+
+IPv4 link-local addresses are assigned from address block **169.254.0.0/16 (169.254.0.0 through 169.254.255.255)**. In IPv6, they are assigned from the block **fe80::/10**.
+
+```Bash
+ipcalc 192.167.22.12/23
+```
+
+#### Subnetting
+
+#### Networking commands
+
+```Bash
+# View interface information, configure IP, show link state
+ip a
+ip as
+ip address show
+ip route show
+ip route add
+ip route del
+# Activate interface promiscuous mode
+sudo ip link set eth0 promisc on
+# Assign IP (not persisten, persistent via config file)
+sudo ip address add 192.168.1.11 dev eth0
+# Show network devices
+ip link show
+# Show ARP table
+ip neigh show
+
+ifconfig # deprecated
+ifup
+ifdown
+netstat # deprectated
+ping
+nmap
+route # deprecated
+tracert
+dhclient
+telnet
+ssh
+```
+
+#### IPv6
