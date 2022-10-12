@@ -187,6 +187,57 @@ lsblk -f # to get file system used by each partition (FSTYPE)
 
 ### The Linux Boot Sequence
 
+#### The Linux Boot Process (Simplified)
+
+- **Machine power on**
+- **BIOS** - checks all the HW and IO devices, once checks complete boot process begin
+- **Boot sector on first hard drive** - boot program, most frequently **GRUB (Grand Unified Boot Loader)** on modern Linux distros looks for HDD section containing the data needed to boot an OS, and loads the Linux Kernel
+- **Linux Kernel** - Linux Kerner loads an Initial RAM Disk
+- **Initial RAM Disk** - contains drivers and starts to load drivers and then mount the file system from HDD, once Kernel is fully loaded it starts initialization system
+- **Init system** - starts services/daemons, once started it takes over mounting file systems and at this point initial RAM disk is no longer needed and gets removed, init system continues loading services and gets machine to the state when it is fully ready to use
+
+#### Boot Logs
+
+dmesg - the traditional utility used for viewing the kernel ring buffer
+journalctl-k - systemd utility to view the kernel ring buffer within the systemd journal
+
+- These logs are volatile - gets overwritten on every reboot
+- Generated from an are known as the **Kernel Ring Buffer** - RAM area to which Kernel wrties all its system messages
+- dmesg - shows info on the HW that kernel can see and how it activates it, low level memory management messages; typically used to see if HW is getting recognized by the Linux Kernel (when it may not be recongnized by udev or not show up in /dev PFS); considered to be legacy command to pull up information from Kernel Ring Buffer
+- journalctl - on most of the modern Linux distributions systemd is used instead of old init system amd with it journalctl command can be used - it logs every event occurring within the system, part of those logged events are kernel messages (the same which can be seen with dmesg command); to view kernel messages we use *journalctl -k* (k switch indicates that we want to see all kernel messages)
+
+### init
+
+init basics
+
+- init - short for initialization
+- based on the System V init used in UNIX systems
+- sysvinit - written by Miquel Van Smoorenburg
+- services are started one after the other, sequentially/in a serial fashion - that approach was choosen for the sake of simplicity
+
+init startup
+
+- when Linux kernel is loaded and initial RAM disk is created it looks up for initialization system to hand over control to it
+- /sbin/init - first place where kernel looks up for initialization system, once init program is located its get started and takes control
+- /etc/inittab - once started init reads configuration from /etc/inittab file
+- init reads /etc/inittab file to determine what runlevel the system should be operating in (predefined configuration)
+- each runlevel starts and/or stops scripts for various services dependin on how the system should be set up
+- system can operate in 1 runlevel at a time, runlevel applies to the system as a whole
+
+Linux Runlevels (based on Linux Standards v4.1, some Linux distros such as Slackware and Gentoo use slightly different configuration)
+
+| Runlevel | Purpose                                 |
+|----------|-----------------------------------------|
+| 0        | Halt                                    |
+| 1        | Single-user mode                        |
+| 2        | Multi-user mode without networking      |
+| 3        | Multi-user mode with networking         |
+| 4        | unused                                  |
+| 5        | Multi-user mode with networking and GUI |
+| 6        | Reboot                                  |
+
+
+
 >>>
 
 ### 101.3 Change Runlevels/Boot Targets and Shutdown or Reboot the System

@@ -1181,4 +1181,69 @@ telnet
 ssh
 ```
 
-#### IPv6
+## 11 10.10.2022
+
+### Vagrant
+
+### IPv6
+
+Hexadecimal
+
+0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16
+0 1 2 3 4 5 6 7 8 9 A  B  C  D  E  F  
+
+2 ^ 128
+
+16 bit x 8 = 128 bit, : as a separator
+
+32 hexadecimal symbols
+
+Compression/abbreviation rules:
+- Leading 0s can be omitted
+- Sequence of 0s - ::, once per address
+
+Network prefixes
+- IPv4  - we use prefixes 255.255.255.0 or /24 etc.
+- IPv6 - /64 half of address goes to subnet mask, we only use prefixes (/N)
+
+2001.0000.0000.0000.0000.0000.0000.0001 = 2001::1
+
+- No broadcast concept, only unicast
+- 2000::/3
+- Global unicast - similar to public IPv4 - unique & routed, all which start from 001 (binary) - 2000::/3 to 3FFF::/3
+- Modified EUI-64 Format - creates host part based on 48-bit MAC address
+
+
+Subnetting
+
+- /16 /32 /48 /64 /80 /96 /112
+- Local-link
+
+Exam IPv6 questions:
+- IPv6 notation
+- Contraction/abbreviation rules
+- Masking (only prefix masks)
+- Global unicast prefix - 
+- Link local prefix - FE80 - FEFF
+
+Network Configuration Files
+
+```Bash
+/etc/hostname # machine name
+# edit file and restart machine or
+sudo hostname -F /etc/hostname
+/etc/hosts # hos resolution entries
+/etc/nsswitch.conf # DNS reolving order - hosts: files dns, if we change order hosts file won't have priority
+/etc/resolv.conf # DNS servers
+/etc/network/
+/etc/network/interfaces # NIC/interfaces definitions
+```
+
+```Bash
+tcpdump # CLI sniffer, network tracer utility
+tcpdump -n -i enp0s8 icmp
+it route show
+iptables # configure NAT
+nmcli # netork manager, allows to create connections and apply configurations
+nmcli connection up <connection_name>
+```
