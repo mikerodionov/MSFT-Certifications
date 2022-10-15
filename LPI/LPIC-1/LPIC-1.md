@@ -170,7 +170,7 @@ lsblk # list hard disks (block devices) - NAME / MAJ-MIN / SIZE / RO / TYPE / MO
 lsblk -f # to get file system used by each partition (FSTYPE)
 ```
 
-#### 101.1 Determine and configure hardware settings Recap
+#### Recap - 101.1 Determine and configure hardware settings
 
 **sysfs** - is a pseudo file system that provides information about the kernel (such as hardware devices and their device drivers) through user space. The sysfs filesystem is **commonly mounted at /sys**. Typically, it is mounted automatically by the system.
 
@@ -208,23 +208,23 @@ journalctl-k - systemd utility to view the kernel ring buffer within the systemd
 
 ### init
 
-init basics
+#### init basics
 
 - init - short for initialization
 - based on the System V init used in UNIX systems
 - sysvinit - written by Miquel Van Smoorenburg
 - services are started one after the other, sequentially/in a serial fashion - that approach was choosen for the sake of simplicity
 
-init startup
+#### init startup
 
 - when Linux kernel is loaded and initial RAM disk is created it looks up for initialization system to hand over control to it
-- /sbin/init - first place where kernel looks up for initialization system, once init program is located its get started and takes control
-- /etc/inittab - once started init reads configuration from /etc/inittab file
-- init reads /etc/inittab file to determine what runlevel the system should be operating in (predefined configuration)
+- **/sbin/init** - first place where kernel looks up for initialization system, once init program is located its get started and takes control
+- **/etc/inittab** - once started init reads configuration from /etc/inittab file
+- init reads /etc/inittab file to determine what **runlevel** the system should be operating in (predefined configuration)
 - each runlevel starts and/or stops scripts for various services dependin on how the system should be set up
-- system can operate in 1 runlevel at a time, runlevel applies to the system as a whole
+- **system can operate in 1 runlevel at a time**, runlevel applies to the system as a whole / **system-wide option**
 
-Linux Runlevels (based on Linux Standards v4.1, some Linux distros such as Slackware and Gentoo use slightly different configuration)
+#### Linux Runlevels (based on Linux Standards v4.1, some Linux distros such as Slackware and Gentoo use slightly different configuration)
 
 | Runlevel | Purpose                                 |
 |----------|-----------------------------------------|
@@ -236,8 +236,221 @@ Linux Runlevels (based on Linux Standards v4.1, some Linux distros such as Slack
 | 5        | Multi-user mode with networking and GUI |
 | 6        | Reboot                                  |
 
+- 0 - **Halt/Shutdown** level - init run scripts that stop services and powers off the system
+- 1 - **Single user mode** level, typically the root is the only user allowed to login into the system at the run level, primarily used for maintenance tasks and repair functionality
+- 2 - **Multi-user mode without networking** (all interfaces are down, no remote FS are mounted)
+- 3 - **Multi-user mode with networking**, historically most Linux servs were setup to run at this level by default
+- 4 - Typically **not used**, but **available if admin want to setup a custom runlevel environment**
+- 5 - **Multi-user with networking and GUI**, older Linux workstation with desktop environment were configured to run in level 5 by default
+- 6 - **Reboot** runlevel, init stops services and restarts the system going through complete boot up sequence once again
 
+#### inittab file
 
->>>
+- /etc/inittab
+- <identifier>:<runlevel>:<action>:<process> 
+- id:3:initdefault (no action)
+- si::sysinit:/etc/rc.d/rc.sysinit (action rc.sysinit, no runlevel as it is init process)
+- each line specifies a runlevel
 
-### 101.3 Change Runlevels/Boot Targets and Shutdown or Reboot the System
+10:0:wait:/etc/rc.d/rc 0
+10:0:wait:/etc/rc.d/rc 1
+10:0:wait:/etc/rc.d/rc 2
+10:0:wait:/etc/rc.d/rc 3
+10:0:wait:/etc/rc.d/rc 4
+10:0:wait:/etc/rc.d/rc 5
+10:0:wait:/etc/rc.d/rc 6
+
+wait - the process specified will be started once when runlevel is entered, and init will wait for its termination
+
+Boot sequence
+
+- Boot partition found - Filesystem type is ext2fs, partition type 0x83
+- Kernel and initial RAM disk are loaded - kernel, initrd
+- Kernel pulls initial drivers and set up tools from RAM disk
+- Kernel hands the system over to /sbin/init - first place where kernel looks up for initialization system, to locate init system
+- init reads configuration from /etc/inittab file and performs system maintenance tasks from /etc/rc.d/rc.sysinit
+- once init has read the initdefault line in /etc/inittab, it enters runlevel 3 and starts up scripts corresponding to this level
+- once all scripts and services are loaded the system is ready for use
+
+```Bash
+# RedHat based - /etc/rc.d
+# Debian based - /etc/init.d
+# rc = run commands
+ls /etc/rc.d
+init.d
+rc
+rc.sysinit # script that does some house cleaning before we enter into specific runlevel defined in the inittab file
+rc.local # run after the runlevel is completely loaded, usually customized by the sys admin to start up extra services or tasks which do not have their own init scripts
+# rc0 - rc6 directories pertain to specific runlevels
+# inside we can se symbolic links to original script files located under etc/init.d
+# symlinks are named in a specific way - begin with K letter (indicate that services that are to be killed) and S (scripts/services to be started), then NN number which indicates numerical order in which these scripts will be killed and started
+# e.g. ip6tables and iptables are started before network is started etc.
+rc0.d
+rc1.d
+rc2.d
+rc3.d
+rc4.d
+rc5.d
+rc6.d
+# View symlinks
+ls -l /etc/rc3.d/
+```
+
+init
+- /etc/init.d - directory that contains the scripts for the services on the system
+- /etc/init.d/rc - script that orchestrates how the runlevel scripts run and what occurs when a runlevel changes
+
+### upstart
+
+#### Upstart key characteristics/background
+
+Upstart init daemon was made popular by Ubuntu distribution.
+
+- First developed for Ubuntu in 2006 by Scott Remnant
+- First uses in Ubuntu 6.10
+- Eventually included in RedHat Enterprise Linux 6, Debian and Fedora 9
+- Design goal - abiltity to start and stop services in asynchronous fashion
+- Unlike init, upstart is capable to start service asynchronously which decreases boot up times
+- Upstart works with real-time events, which init was not designed to understand
+  - Upstart not only stop and start services but also monitors their availability (can restart service when it stops unexpectedly)
+
+#### init VS upstart - Boot Sequence
+
+init:    **/sbin/init** > /etc/inittab > /etc/rc.d/rc.sysinit > /etc/rc.d/rcX.d (in sequential order) > login
+upstart: **/sbin/init** > startup event (man page 7) > mountall (8) 
+                                                 > /etc/init/rc-sysinit.conf > telinit (8) > runlevel (7) command to switch to default runlevel (not the same as System V init runlevel) > /etc/init/rc.conf > login
+
+* Upstart daemon is named init as well for backward compatibility with the kernel.
+* Some of the upstart components work in parallel to reduce boot time
+
+upstart boot sequence (simplified):
+
+- /sbin/init - Linux kernel looking for initialization daemon named init within /sbin directory, and upstart is named init to support this
+- startup - upstart initialization daemon then fires off the **startup event**
+- mountall - startup event checks and mounts the drives that make up file system using mountall tool
+- load HW drivers - startup event loads HW drivers
+- /etc/init/rc-sysinit.conf - as FSs come online startup runs /etc/init/rc-sysinit.conf script which checks to see if there is an **/etc/inittab** file to see if there are any configuration options set there
+- /etc/init/rc-sysinit.conf calls **telinit** to switch into default runlevel via the **runlevel command**
+- **runlevel command** - starts many other jobs from upstart to get the system ready and also provides compatibility mechanism to legacy scripts which may require specific run levels by executing **/etc/init/rc.conf job** and passing the expected run level as an argument
+- after startup event begins there are multiple other jobs that are runningin parallel which are not mentioned above
+
+#### upstart Service Monitoring
+
+- init is static; it does not natively respon to changes on a system
+- upstart is dynamic, it can respond to changes on the system
+- A change on a Linux system is an event (new monitor plugged in, etc.)
+- Events trigger jobs
+- Jobs fall into 2 categories
+  - Tasks - perform task and return to waiting state on completion
+  - Services - do not stops by itself (only stops in response to event call)
+
+waiting - initial job state waits for events
+starting - job is about to start
+running - job is currently running
+stopping - job has processed its prestop configuration section
+killed - job is stopping
+post-stop - job is stopped
+reswapping - occurs when something goes wrong with job/when it quits unexpectedly while in running state, upstart will attempt to respawn the job up to 10 times with 5 second intervals before job gets dropped entirely
+
+Currently no Linux distribution are using upstart anymore - upstart just an illustration of init system which introduced move from static start/shutdown mechanism to a one which is aware of what's going on in the system and reacts to changes/events.
+
+### systemd
+
+#### systemd - Getting rid of shell scripts
+
+- init and parts of upstart rely on Bash shell scripts
+- systemd removed the need to have shell scripts which have to be run through Bash interpreter which implied spawning spawning new processes for each command within the shell script (each of these processes then have to open up a library file requred by command) which lead to an inefficient use of time
+- systemd replaces most of the functionality of the shell scripts with equivalent functionality written in compiled C code
+- still compatible with older System V init scripts
+  - NOTE: the creators of systemd have emphasized that it is not 100% compatible (close to 99%) with old init system, as it was very extensible and there is no compatibility developed for every possible scenario
+- instead of old bash init scripts systemd uses unit files
+
+#### Uniy File Locations
+
+3 main locations - default or package install/admin/runtime:
+- Default location provided by package installations - **/usr/lib/systemd/system**
+  - do not edit these unit files, as they can potentially be modified by package updates
+- Unit file location for system administrators (these take precedence over those in /usr) - **/etc/systemd/system**
+- Runtime unit files - **/run/systemd/system**
+
+To view all unit files on a system: 
+
+```Bash
+systemctl list-unit-files
+```
+
+#### Components of the Unit File
+
+- Unit files follow the INI style format first seen in MS-DOS, lines:
+  - [Unit]
+  - Description=Multi-User System
+  - Documentation=man:systemd.special(7)
+  - Requires-basic.target
+    - or Wants=(more robust)
+  - Conflicts=rescue.service rescue.target
+  - After=basic.target rescue.service rescue.target
+- man 5 systemd.unit - full documentation on the systemd unit file
+- systemctl cat something.unit - will print out the contents of the unit file specified, e.g. *systemctl cat httpd.service*
+
+#### systemd is the new init
+
+systemd boot sequence
+- The kernel still looks for /sbin/init
+- systemd just took the place of /sbin/init (via symbolic link /sbin/init > /lib/systemd/systemd)
+
+### Recap - 101.2 Boot the System
+
+#### sysvinit runlevels
+
+- 0 - **Halt/Shutdown** level - init run scripts that stop services and powers off the system
+- 1 - **Single user mode** level, typically the root is the only user allowed to login into the system at the run level, primarily used for maintenance tasks and repair functionality
+- 2 - **Multi-user mode without networking** (all interfaces are down, no remote FS are mounted)
+- 3 - **Multi-user mode with networking**, historically most Linux servs were setup to run at this level by default
+- 4 - Typically **not used**, but **available if admin want to setup a custom runlevel environment**
+- 5 - **Multi-user with networking and GUI**, older Linux workstation with desktop environment were configured to run in level 5 by default / aka X11
+- 6 - **Reboot** runlevel, init stops services and restarts the system going through complete boot up sequence once again
+
+#### Linux boot order/sequence
+
+BIOS > Boot Sector (with the Boot Loader), Kernel, Initial RAM Disk, Device Initialization
+
+Commands to view output from the kernel ring buffer
+
+- *journalctl -k* - systemd journal command lets you view kernel messages from the ring buffer
+- *dmesg* - displays text from the kernel ring buffer
+
+#### Linux Initialization systems
+
+- **sysvinit** - classic initialization system used on Linux systems, written by Miquel Van Smoorenburg, services are started one after the other, sequentially/in a serial fashion - that approach was choosen for the sake of simplicity
+- **upstart** - replacement initialization system originally developed for the Ubuntu distribution
+
+**/sbin/init** - binary used by kernel to bring up the rest of the system and start services / first place where kernel looks up for initialization system, to locate init system
+
+Initial RAM disk
+- Gets unmounted when init system takes over and mounts the computer's file systems
+
+## 101.3 Change Runlevels/Boot Targets and Shutdown or Reboot the System
+
+### Change Your Working Environment Runlevels
+
+#### Runlevel Review
+
+- 0 - **Halt/Shutdown**
+- 1 - **Single user mode**
+- 2 - **Multi-user mode without networking**
+- 3 - **Multi-user mode with networking**
+- 4 - **unused** (for custom environments)
+- 5 - **Multi-user with networking and GUI**
+- 6 - **Reboot**
+
+#### Runlevel Commands
+
+```Bash
+runlevel # view your current runlevel
+telinit # change to another runlevel
+init N # change to another runlevel, requires root (su -)
+```
+
+Changing runlevels at boot - interrupt the GRUB boot process by pressing any key during startup, then at the GRUB selection menu, highlight a kernel to modify, press the "a" key to add arguments to the end of a kernel line, enter in a runlevel number
+
+###
