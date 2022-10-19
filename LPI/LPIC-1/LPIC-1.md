@@ -431,7 +431,7 @@ Initial RAM disk
 
 ## 101.3 Change Runlevels/Boot Targets and Shutdown or Reboot the System
 
-### Change Your Working Environment Runlevels
+### Change Your Working Environment - Runlevels
 
 #### Runlevel Review
 
@@ -453,4 +453,13 @@ init N # change to another runlevel, requires root (su -)
 
 Changing runlevels at boot - interrupt the GRUB boot process by pressing any key during startup, then at the GRUB selection menu, highlight a kernel to modify, press the "a" key to add arguments to the end of a kernel line, enter in a runlevel number
 
-###
+### Change Your Working Environment - targets
+
+Components of the Unit File
+
+- systemctl cat something.unit, e.g. systemctl cat https service - this will print out the contents of the unit file specified
+
+```
+```
+
+### Recap - 101.3 Change Runlevels/Boot Targets and Shutdown or Reboot the System

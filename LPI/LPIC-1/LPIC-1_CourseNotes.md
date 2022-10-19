@@ -1247,3 +1247,185 @@ iptables # configure NAT
 nmcli # netork manager, allows to create connections and apply configurations
 nmcli connection up <connection_name>
 ```
+
+## 17.10.2022
+
+```Bash
+# ip - show / manipulate routing, network devices, interfaces and tunnels
+ip link # verify whether interface is up
+ifup eth0 # enable interface, ifdown to disable
+ip a # address
+ip r # route
+# ifconfig - configure a network interface / deprecated command
+ifconfig
+ifconfig enp0s3 192.168.178.32 netmask 255.255.255.0 # add IP configuration
+vi /etc/network/interfaces # add PERMANENT IP configuration
+# iface eth1 inet static
+#   address 10.0.0.1
+#   netmask 255.255.255.0
+#   gateway 192.168.109.1
+
+# after making changes to IP configuration , ifdown/ifup to apply
+
+# default gateway = default route
+route add default via 10.0.0.254 # temp, for permanent change edit configuration file /etc/network/interfaces
+
+# open ports
+
+ping
+ping -I eth0 192.168.109.1 # ping through specific interface
+route # print out route table
+traceroute
+systemctl ssh
+
+# nmap - scan ports
+nmap -sn 10.0.0.0/24 -oA results.txt
+
+# when correct IP is unknown we can try to discover it by putting interface in promiscuos mode and using tcpdump
+ip link set eth1 promisc on
+tcpdump -n -i eth1
+
+ip address show # will show all interfacess as all of them have MAC address
+ip -4 address show # will only show interfaces with IPv4 assigned
+
+# change MAC address
+ip link set eth1 address
+
+# Deprecated commands - arp, route, ifconfig, netstat
+# arp, route, ifconfig > superceded by ip
+# nstat > superceded by ss
+nmap # scan remote machines or local host for open ports
+netstat # check local host for open ports - open connections/listening connections
+
+# -u -include UDP, -t include TCP, -p include PID, -a - all (listening/established)
+# -tl - solo TCP listening
+# -n - do not translate port number into protocol/serv name (e.g. 443 into HTTPS) - based on /etc/services file contents
+netstat -punta | head -5
+```
+
+Network Troubleshootinh Flow:
+- Check if interface is up - iplink show, iplink eth1 up
+- Check if IP config is correct - 
+- Check if GW is reachable
+- Try alternative/other interface
+- Check for othet GW with nmap
+- Create new route
+- Document
+- Close ticket
+
+```Bash
+# 2 ways to check opened connections to specific ports:
+
+# lsof - list open files
+lsof -i:22
+
+# netstat
+netstat -tl
+
+# ping, -s 1500 set packet size
+# -f - flood ping, for every ICMP send print . for reply erase - line grows = number of lost packets increases, ideally should be stable short line
+
+# traceroute, generates trace to reach target
+
+# mtr - a network diagnostic tool, my trace route
+# sustained trace, keeps repeeting trace and generating stats
+mtr -n domain.con
+```
+
+time-outs/microcortes
+bottleneck
+
+default max hop N = 30
+
+Default TTL and Hop Limit Values
+
+Default TTL and Hop Limit values vary between different operating systems, here are the defaults for a few:
+
+- Linux kernel 2.4 (circa 2001): 255 for TCP, UDP and ICMP
+- Linux kernel 4.10 (2015): 64 for TCP, UDP and ICMP
+- Windows XP (2001): 128 for TCP, UDP and ICMP
+- Windows 10 (2015): 128 for TCP, UDP and ICMP
+- Windows Server 2008: 128 for TCP, UDP and ICMP
+- Windows Server 2019 (2018): 128 for TCP, UDP and ICMP
+- MacOS (2001): 64 for TCP, UDP and ICMP
+
+speedtest-cli
+
+/etc/network/if-up.d
+
+ssh - tunnels & port forwarding
+
+```Bash
+# Get FQDN
+host
+dig
+# DNS records - A, NS, MX, CNAME (alias), PTR (name to IP)
+host -t A facebook.com
+host -t PTR facebook.com
+host -t NS cocacola.com
+```
+
+## 19.10.2022
+
+```Bash
+man sudo
+whoami
+# execute command as root
+sudo -u root whoami
+# switch to root
+su -
+# In Ubuntu root user
+# Best practice work with personalized/identifiable users instead of shared/generic users
+# If we omit -u username it is implied that we want to use -u root
+cat /etc/passwd | cut -d":" -f1 | xargs id | grep sudo
+# sudoers file
+# This file MUST be edited with the 'visudo' command as root - it will check syntax check before saving
+sudo cat /etc/sudoers
+sudo visudo
+# .ssh/ - id_rsa, id_rsa.pub
+# ./ssh/authorized_keys
+# run command over ssh
+ssh user@host tail -3 /etc/passwd
+
+# sudoreplay
+sudoreplay
+
+# /etc/sudoers.d/
+
+Cmnd_Alias SOFTWARE = /usr/bin/apt-get install *, !/usr/bin/apt-get install nano, !/usr/bin/apt, !/usr/bin/dpkg
+
+%teachers ALL=(ALL:ALL) NOEXEC: DISK, !FILES, EDITOR, NETWORK
+%students
+
+# ssh profiles
+ssh 0 = ssh -i ~/.ssh/keys/my_key root@zero
+
+# Password policies
+/etc/ssh/sshd_config # system-wide configuration file for OpenSSH which allows you to set options that modify the operation of the daemon
+# specify custom port
+Port 22
+
+# disable password auth for everyone
+PasswordAuthentication no
+
+# root ssh private key login only 
+PermitRootLogin prohibit-password
+# root ssh login completely disabled
+PermitRootLogin no
+
+DenyUsers user1 user2
+AllowUsers user3 user4
+
+# pam modules
+/etc/pam.d
+
+# scripts
+./script.sg
+source script.sh
+
+# First line indicates shell agains which script will be executed
+# #! /bin/bash
+
+source ~/.bashrc
+. ~/.bashrc
+```
