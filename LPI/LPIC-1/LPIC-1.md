@@ -463,3 +463,111 @@ Components of the Unit File
 ```
 
 ### Recap - 101.3 Change Runlevels/Boot Targets and Shutdown or Reboot the System
+
+## 103.4 Use Streams, Pipes and Redirects
+
+### Understanding Standard Input, Output and Error
+
+Standard Output
+
+- All UNIX-like OSs have something like a bucket where all output goes
+- This "bucket" is called Standard Output
+- Abbreviated as "stdout"
+- File handle number 1
+
+Redirecting Standard Output
+
+- We can use special characters to intercept information before it gets to "stdout"
+- Characters: >, >>
+
+Standard Input
+
+- Input into a process or application usually comes from entries made on the keyboard
+- Files and standard output from other commands can provide input to another command
+- Special characters: <, | (less than, pipe)
+- Abbreviated as stdin
+- File handle number 0
+
+```Bash
+# Standard Input examples
+wc test.sh # input comes form keyboard
+wc < test.sh # input comes from file
+cat /etc/passwd | less # input comes from stdout of cat command
+```
+
+Standard Error
+
+- Abbreviated as "stderr"
+- Typically written to the screen 
+- File hanle number 2 (stdin - 0, stdout - 1)
+
+```Bash
+# Redirecting examples using file handle/stream numbers
+script.sh # stderr goes to the screen
+script.sh 2> error.log # stderr gets redirected to error.log file
+script.sh 2>&1 | less # stderr & stdout gets sent as stdin to the less command
+```
+
+### Redirecting Output to Screen and File
+
+More Redirect Options
+
+```Bash
+# Write stdout to file
+echo "data" > myfile.txt
+# Append stdout to file
+echo "data2" >> myfile.txt
+# Redirect stdin with <
+cat < myfile.txt
+# Pipe stdout from one command to another
+cat /etc/passwd | less
+```
+
+tee
+
+- reads data from stdin, and writes that data to stdout and files
+- useful for chaining together long commands and viewing output at various stages
+
+```Bash
+# -d = only directories
+ls -d /usr/share/doc/lib[Xx]*
+# pipe output to the tee which will output to the screen and to a file
+ls -d /usr/share/doc/lib[Xx]* | tee
+# pattern - command | tee file | command | tee file | command | tee file
+ls -d /usr/share/doc/lib[Xx]* | tee lib-docs.txt | sort -r | tee lib-docs-rev.txt
+```
+
+xargs
+
+- accepts input from stdin and other commands
+- commonly used with the *find* command (but can be used with other commands as well)
+
+```Bash
+# Look up for empty files
+find test/ -empty
+# pipe stdout to xargs whcich will use it as options for another command
+find test/ -empty | xargs rm -f
+# get file names containing text pattern and passing it to args to execute mv command
+# {} individual file name returned by previous command
+grep -l "junk" test/file_* | xargs -I {} mv {} test/bak/
+
+# Locate any .sh file in home dir, and use xargs to get file attributes and redirect this output to file
+find ~ -name "*.sh" | xargs ls -al > scripts.txt
+```
+
+### Recap - Understanding Standard Input, Output and Error
+
+```Bash
+# stdout redirect character >
+# stdout redirect appending >>
+*command > output.log 2>&1* # send both the stdout of a command, and stderr, into a file called output.log
+find / -name "*.bak" | xargs -I {} mv {} backup/ # find *.bak and move to backup directory
+date 2> /dev/null | tee out.log # print today's date to the screen, send any errors to /dev/null, and write the output of the command to a file called out.log
+# as tee expects input/stdin we use pipe
+
+# Display file content on the screen/stdout
+cat < list.txt # sending file to stdin of cat command
+cat list.txt
+```
+
+## 103.5 Create, Monitor, and Kill Processes
