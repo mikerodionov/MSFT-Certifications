@@ -1429,3 +1429,148 @@ source script.sh
 source ~/.bashrc
 . ~/.bashrc
 ```
+
+## 24.10.2022
+
+```Bash
+# Adding variables - local level applied after global, so for the same var user will have a value from local config
+# Global config
+cat /etc/profile
+/etc/bash.bashrc
+# Local config
+~/.profile
+~/.bashrc
+
+# Users Management
+# Permissions - Owner - Group - Others
+# User will have a group with the same name as user when you provide no group name for user
+
+sudo user add user1
+sudo passwd user1
+mkdir /home/user1
+chown user1 /home/user1
+
+# -d can be other location as /home - it is just working directory immediately after user login
+# on Apache servers home can be something like /var/www/html/website1
+# -u to specify UID, e.g. -u 543
+sudo useradd user2 -g users -m -d /home/user2
+
+# command will also create the following
+# .bash_logout
+# .bashrc
+# .profile
+# .ssh
+
+sudo useradd mike -u 2021 -g 1002 -m -d /home/mike -s /bin/bash
+# -k, --skel SKEL_DIR = use this alternative skeleton directory
+sudo useradd john -u 2022 -g 1002 -m -d /home/mike -s /bin/bash -k /usr/share/skel
+# you can use alternative skeleton directory to preload your public key on all machines
+
+# /etc/passwd contains a list of the system's accounts, giving for each account some useful information like user ID, group ID, home directory, shell, etc.
+/etc/passwd
+
+bin:x:1:1:bin:/bin:/sbin/nologin # sbin/nologin displays a message that an account is not available and exits non-zero. It is intended as a replacement shell field to deny login access to an account.
+# If the file /etc/nologin.txt exists, nologin displays its contents to the user instead of the default message.
+# The exit code returned by nologin is always 1.
+
+# usermod - to modify user
+# Modify primary group -g
+sudo usermod user1 -g admins
+# Add additional group -G
+sudo usermod user1 -G FTP
+
+# Delete user
+userdel
+
+# Group management
+groupadd
+groupmod
+groupdell
+
+# Password management
+passwd
+chage
+# List password expiration details for user
+sudo chage -l user
+
+### Create user script - interactive
+
+#! /bin/bash
+
+#echo -n "User name for new user?"
+#read NAME
+
+NAME=$1
+
+grep -q $NAME /etc/passwd
+
+if [ $? -eq 0 ]
+then
+    echo "User $NAME already exists"
+else
+    useradd $NAME -g users -m -d /home/$NAME
+fi
+
+### If example
+# save as file +  chmod +x test.sh
+# then run test.sh apple manzana banana
+if [ $# -eq 3 ]
+then
+    echo $1
+    echo $2
+    echo $3
+else
+    echo -n "You didn't pass in 3 variables, but "
+    echo $#
+fi
+
+echo $0
+
+### Loop example
+# for - finite loop
+# Loop through command result - $(seq 1 20) - one line
+for i in $(seq 1 20) ; do echo $i ; done
+
+## while - condition based loop - one line
+x=1; while  [ $x -le 5 ]; do echo "Welcome $x times" $(( x++ )); done
+## while - condition based loop - multi line
+
+#!/bin/bash
+x=1
+while [ $x -le 5 ]
+do
+  echo "Welcome $x times"
+  x=$(( $x + 1 ))
+done
+
+### Options Selector - case
+
+## languages.sh example
+
+#!/bin/bash
+
+echo -n "Enter the name of a country: "
+read COUNTRY
+
+echo -n "The official language of $COUNTRY is "
+
+case $COUNTRY in
+
+  Lithuania)
+    echo -n "Lithuanian"
+    ;;
+
+  Romania | Moldova)
+    echo -n "Romanian"
+    ;;
+
+  Italy | "San Marino" | Switzerland | "Vatican City")
+    echo -n "Italian"
+    ;;
+
+  *)
+    echo -n "unknown"
+    ;;
+esac
+
+```
