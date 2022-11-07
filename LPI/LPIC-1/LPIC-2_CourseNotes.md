@@ -1,8 +1,15 @@
 # LPIC 2
 
-##
+Vagrant
 
-### 200.1 Resources and Measures for Problem Resolution
+```Bash
+sudo sh -c 'echo "* 10.0.0.0/8 192.168.0.0/16" > /etc/vbox/networks.conf'
+sudo sh -c 'echo "* 2001::/6" >> /etc/vbox/networks.conf'
+```
+
+## 200 Capacity Planning
+
+### 200.1 Measure and Troubleshoot Resource Usage (weight: 6)
 
 ```Bash
 iostat # used to monitor load of I/O of fevice and CPU
@@ -72,3 +79,19 @@ ps aux | less # aux = all processes, all terminals, including with and withot TT
 # x - processes without controlling ttys
 ps aux | grep sleep
 ```
+
+### 200.2 Predict Future Resource Needs (weight: 2)
+
+Key Knowledge Areas
+
+- Use monitoring and measurement tools to monitor IT infrastructure usage
+- Predict capacity break point of a configuration
+- Observe growth rate of capacity usage
+- Graph the trend of capacity usage
+- Awareness of **monitoring solutions** such as **Icinga2**, **Nagios**, **collectd**, **MRTG** and **Cacti**
+
+The following is a partial list of the used files, terms and utilities:
+
+- diagnose
+- predict growth
+- resource exhaustion
