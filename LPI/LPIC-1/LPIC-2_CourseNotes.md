@@ -70,4 +70,5 @@ ps aux | less # aux = all processes, all terminals, including with and withot TT
 # -a - all with tty, except session leaders
 # -u, U, --user <UID> - effective user id or name
 # x - processes without controlling ttys
+ps aux | grep sleep
 ```
