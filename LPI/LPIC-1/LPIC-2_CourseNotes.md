@@ -5,6 +5,7 @@ Vagrant
 ```Bash
 sudo sh -c 'echo "* 10.0.0.0/8 192.168.0.0/16" > /etc/vbox/networks.conf'
 sudo sh -c 'echo "* 2001::/6" >> /etc/vbox/networks.conf'
+vagrant plugin install virtualbox_WSL2
 ```
 
 ## 200 Capacity Planning
@@ -95,3 +96,120 @@ The following is a partial list of the used files, terms and utilities:
 - diagnose
 - predict growth
 - resource exhaustion
+
+## Capacity Planning
+
+```Bash
+pidof apache2
+ps ax | grep apache2 |grep -v grep
+strace -p 4991
+# Tomcat - servlets server
+# JBoss, Weblogic - Java application servers
+
+# Resources Management
+procfs
+sysfs
+
+systat
+
+# https://mmonit.com/monit/
+```
+
+## 201 Linux Kernel 
+
+```Bash
+cd /boot/
+ls /boot/vmlinuz*
+uname # Print certain system information, -a, --all = ALL
+uname -r # -r, --kernel-release = print the kernel release
+cat /proc/cmdline # to find the kernel path, but note that this path is relative to the root image at boot time, so / likely means /boot/ in the running system
+
+# Kernel modules
+ls /lib/modules
+ls /lib/modules/3.10.0-327.el7.x86_64/kernel/fs/fat/
+
+# Getting info about module and its dependencies
+modinfo fat
+
+insmod <module_path/module_name> # load module into memory
+
+lsmod # shows modules loaded into memory
+
+modinfo vfat # module info including path and modules it depends on (depends)
+modinfo fat
+
+insmod /lib/modules/2.6.18-8.el5/kernel/fs/fat/fat.ko
+insmod  /lib/modules/2.6.18-8.el5/kernel/fs/vfat/vfat.ko
+# lsmod |grep -i vfat
+
+
+rmmod /lib/modules/2.6.18-8.el5/kernel/fs/vfat/vfat.ko
+rmmod /lib/modules/2.6.18-8.el5/kernel/fs/fat/fat.ko
+# lsmod |grep -i vfat
+
+# modprobe vfat
+# modprobe -r  vfat
+
+## tar
+# x --> extract
+# c --> package
+# v --> verbose
+# f --> file
+# -C --> directory to extract / -C, --directory=DIR = change to directory DIR
+
+# Compile nginx from source code
+yum install pcre-devel openssl openssl-devel make gcc wget -y
+
+# Centos8, Centos7
+yum groupinstall "Development Tools" -y      
+yum install pcre-devel openssl openssl-devel -y
+
+# Debian/Ubuntu : apt  install libssl-dev  build-essential
+
+./configure --help --prefix=/etc
+make
+make install 
+
+# Compiled app installation normally placed in the following directories:
+/usr/local/bin
+/usr/local/sbin
+
+cd /root
+wget http://nginx.org/download/nginx-1.19.6.tar.gz
+tar xzfv nginx-1.19.6.tar.gz -C /opt
+
+
+
+cd /opt/nginx-1.19.6
+
+Mirar el fichero README 
+
+# For Debian
+./configure --without-http_rewrite_module --without-http_gzip_module --with-http_ssl_module
+make
+make install 
+
+
+
+# For CentOS
+./configure --help
+./configure --with-http_ssl_module  
+make
+make install 
+
+# Verify installation
+
+/usr/local/nginx/sbin/nginx -V
+
+# Start nginx
+/usr/local/nginx/sbin/nginx    
+netstat -putan | grep -w 80
+
+curl http://<IP>
+
+/usr/local/bin
+/usr/local/sbin
+
+# Stop nginx
+killall nginx
+```
