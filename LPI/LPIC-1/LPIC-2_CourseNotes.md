@@ -213,3 +213,182 @@ curl http://<IP>
 # Stop nginx
 killall nginx
 ```
+
+### sysctl
+
+```Bash
+ls /proc/sys
+# dev - config params for connected devices
+# fs - params related with files, inodes, quota, etc.
+# kernel
+# net - network config params
+# vm - virtual memory configuration
+
+sysctl
+# -a - show all variables
+# -w / --write - enable writing a value to variable, changes are load on restart, permanent changes has to be writtent into /etc/sysctl.conf
+# -p / --load[=<file>] - read values from a file to verify that settings are correct
+
+journalctl # Query the journal
+```
+
+```Bash
+# List all systemd units of the type service
+systemctl list-units --type service --all
+
+# Configure auto start of Apache in systemv and systemd
+# systemv
+chkconfig --level 3 httpd on
+ln -s /etc/init.d/httpd   /etc/rc3.d/S85httpd
+# systemd
+systemctl # query or send control commands to the systemd manager
+systemctl enable httpd
+
+# Start httpd service with systemv and systemd
+service httpd start
+/etc/init.d/httpd start
+# systemd
+systemctl start httpd
+
+# Checl of Apache is configured for autostart with systemv and systemd
+chkconfig --list httpd apache2ch # systemv
+systemctl  is-enabled httpd apache2 # systemd
+
+#
+Cambiar al target o runlevel 3 tanto en systemd como en systemv en caliente
+init 3
+telinit 3
+systemctl isolate multi-user.target
+
+Averiguar en que target arranca el sistema en systemd
+cat /etc/inittab
+systemctl get-default
+
+Ver con journalctl los logs de error del servicio sshd
+journalctl -p err -u sshd
+
+Ver todos los logs de error del sistema con journalctl
+journalctl -p err
+
+Ver los logs del service httpd y mariadb con journalctl
+journalctl -u mariadb -u httpd
+
+Ver los logs de los ultimos 5 minutos del servicio sshd
+journalctl --since '5 min ago' -u sshd
+
+Comando iostat para ver estadisticas de cpu
+iostat -c 1 5
+
+Comando iostat para ver estadisticas de dispositivos
+iostat -d 1 5
+
+Parametro del comando vmstat para visualizar marca de tiempo
+vmstat -t
+
+Parametro del comando netstat que permite obtener el estado de las tarjetas de red
+netstat -i
+```
+
+## System Startup - SystemD
+
+```Bash
+# /usr/lib/systemd/system/: units distributed/installed via RPM packages
+# /run/systemd/system/: units created at execution time, have precedence over previous directory
+# /etc/systemd/system/: units created and administered by sys admin, this directory has precedence over previous directory 
+
+yum install git -y
+cd / 
+git clone https://github.com/agarciafer/lpic2.git
+cd /lpic2
+iniciar-supervisamem supervisamem
+
+cd /etc/systemd/system
+vi supervisamem.service
+
+
+## Webmin
+
+# https://www.webmin.com/
+# Webmin is a powerful and flexible web-based server management control panel for Unix-like systems. Webmin allows the user to configure operating system internals, such as users, disk quotas, services or configuration files, as well as modify and control open-source apps, such as the Apache HTTP Server, PHP or MySQL.
+```
+
+## Linux Disks
+
+```Bash
+## Disk types
+
+# IDE disks with IDE controllers (aka PATA, Parallel Ata or ATAPI) 
+# they are named hdX: • hda: IDE0, Master • hdb: IDE0, Slave • hdc: IDE1, Master • hdd: IDE1, Slave
+
+# SCSI, SATA, USB, FIREWIRE, etc.
+# • sda: first SCSI disk • sdb: second SCSI disk • sdc: third SCSI disc • etc. 
+
+# SCSI standard distinguish between different devices, hence CD-ROM, DVD, HD-DVD, BlueRay readers and recorders do not have the same name
+# Readers and recorders named srX (sr0, sr1, etc.).
+
+## fstab
+
+# df - Show information about the file system on which each FILE resides, or all file systems by default.
+# -h, --human-readable  print sizes in human readable format (e.g., 1K 234M 2G)
+# -T, --print-type      print file system type
+df -hT
+```
+
+### Partitioning - Creating and Mounting a Partition
+
+```Bash
+fdisk -l #  query information about the new data disk
+fdisk /dev/sdb # enter fdisk to partition the new data disk
+n # create new partion, then accept defaults to create primary partition using all disk space
+    p # primary
+    1 # partition number
+    # first secrtor, default = 2048
+    # last sector
+p # view details about partition
+w # write changes to the partition tab
+```
+
+### XFS
+
+```Bash
+# Repair XFS FS, no bad blocks verification
+xfs_repair /dev/sdf1
+# Bad blocks verification
+badblocks /dev/sdb1
+xfsdump # backup xfs parition, The –L [session label] option allows you to assign a label to the backup
+xfsdump -f /cs /dev/sdb1
+file /cs
+xfsrestore # restore xfs partition
+xfsrestore -f /cs /logs
+xfsrestore -f /cs /logs-backup/ # restore to different folder/mount point
+# restore file by file - ls, add, extract
+xfsrestore -f /cs -i -v silent /logs
+# df - Show information about the file system on which each FILE resides, or all file systems by default.
+#  -h, --human-readable  print sizes in human readable format (e.g., 1K 234M 2G)
+#  -T, --print-type      print file system type
+df -hT
+```
+
+### swap
+
+```Bash
+free -h # memory and swap used/total size
+swapon -s # swap location
+cat /proc/swaps # PFS to see swap location
+lsblk # to see swap partition
+# type 82 = swap
+mkswap /dev/sdb2 # volume or file
+swapoff /dev/sdb2 # volume or file
+fstab # persistent configuration
+
+# controlling swap location priorities
+# /etc/fstab - static file system information - pri=NN
+#/dev/mapper/ubuntu--vg-swap_1 none            swap    sw,pri=90              0       0 
+
+#
+cat /proc/sys/vm/sappiness
+vm.swappines = 10
+```
+
+### LVM
+
