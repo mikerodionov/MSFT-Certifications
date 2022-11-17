@@ -392,3 +392,45 @@ vm.swappines = 10
 
 ### LVM
 
+### RAID
+
+```Bash
+sudo yum install mdadm -y
+mdadm # mdadm is used for building, managing, and monitoring Linux md devices (aka RAID arrays)
+# Create a partition using discs sdb sdc sde and setting its type to fd
+mdadm -v -C /dev/md0 -n 2 /dev/sdb1 /dev/sdc1 -l 1 --spare-devices=1 /dev/sdd1
+mdadm --detail --scan >> /etc/mdadm.conf
+# State can be verified via /proc/mdstat
+cat /proc/mdstat
+watch mdadm --detail /dev/md0
+
+mkfs.ext3 /dev/md0
+mkdir /documents
+mount /dev/md0 /documents/
+df -h
+echo '/dev/md0     /documents   ext3  defaults 0 0' >> /etc/fstab
+
+# Force disk failure for test
+mdadm /dev/md0 -f /dev/sdb1
+
+# Take out failed disk from array
+mdadm /dev/md0 -r /dev/sdb1
+
+# Add new disk to replace failed and rebuild RAID
+mdadm /dev/md0 -a /dev/sdb1
+
+# Delete RAID array
+# To delete  RAID we first need to stop it (should not be mounted), and next destroy it
+umount /documents
+mdadm --stop /dev/md0
+mdadm --remove /dev/md0
+
+
+# Finally, to eliminate superblocks of all associated devices
+# To completely destroy RAID we need to delete information of superblocks of disks included into RAID - this is where info about RAID is written
+# this can be done with parameter --zero-superblock:
+
+mdadm --zero-superblock /dev/sdb1 /dev/sdc1 /dev/sdd1
+cat /dev/null > /etc/mdadm.conf
+```
+
