@@ -136,6 +136,22 @@ IaC is a method of writing human-readable code to deploy resources in the cloud 
 
 ## IaC With Terraform
 
+### What is the Terraform Workflow
+
+The Core Terraform Workflow: Write > Plan > Apply
+
+Write - write your Terraform code - this would generally start off with creating a GitHub repo as a common best practice
+Plan - continually add and review changes to code in your project
+Apply - after final review/plan, deploy/provision real infrastructure
+
+### Terraform Init (Initializing the Working Directory)
+
+**terraform init** - initializes the working directory that contains your Terraform code
+- Downloads ancillary components - providers, modules and plugins
+- Sets up the backend for storing Terraform state file, a mechanism by which Terraform tracks resources
+
+### Terraform Key Conecpts: Plan, Apply, and Destroy
+
 
 
 ## 7 Implement and Maintain State
