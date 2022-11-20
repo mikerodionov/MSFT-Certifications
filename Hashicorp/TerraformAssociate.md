@@ -152,7 +152,110 @@ Apply - after final review/plan, deploy/provision real infrastructure
 
 ### Terraform Key Conecpts: Plan, Apply, and Destroy
 
+Terraform Core Workflow: Write Code > Plan/Review > Deploy/Apply
 
+Terraform Plan
+
+- Reads the code and then creates and shows a "plan" of execution/deployment; this command does not deploy anything and can be considered as a read only command
+- Allows you to review the action plan before executing anything
+- At this stage authentication credentials are used to connect to your infrastructure, if required
+
+Terraform Apply
+
+- Deploys the instructions and statements in the code
+- Updates the deployment state tracking mechanism file, aka "state file"
+
+Terraform Destroy
+
+- Looks at the recorded, stored state file created during deployment and destroys all resources created by toyr code
+- Should be used with caution, as it is a non-reversible command; take backups, and be sure that you want to delete infrastructure
+
+### Resource Addressing in Terraform
+
+Terraform Code
+- Terraform executes code in files with the .tf extension
+- By default, terraform looks for providers in the **Terraform providers registry** - https://registry.terraform.io/browse/providers
+
+```T
+### Configuring provider
+provider "aws" {
+   region = "us-east-1"
+}
+# provider - reserved keyword
+# "aws" - name of the provider
+# {} - configuration parameters, which vary based on provider you use
+
+# Google provider example
+provider "google" {
+   credentials = file("credentials.json")
+   project = "my-gcp-project"
+   region = "us-west-1"
+}
+# file - built-in function
+
+### Resource block sample
+resource "aws_instance" "web" {
+   ami           = "ami-a1b2c3d4"
+   instance_type = "t2.micro"
+}
+# resource - reseved keyword
+# "aws_instance" - resource provided by Terraform provider
+# "web" - user-provided arbitrary resource name
+# {} - resource config arguments, depend on resource you create
+# resource address = aws_instance.web
+
+### Data source block example
+data "aws_instance" "my_vm" {
+   instance_id = "i-1234567890abcdef0"
+}
+# Fetches data from already existing resource
+# data - reserved keyword
+# resource provided by Terraform provider
+# "my_vm" - user-provided arbitrary resource name
+# {} - data source arguments
+# resource address = data.aws_instance.my-vm
+```
+
+### Deploying a VM in AWS Using the Terraform Workflow
+
+- Create a directory and write Terraform code (Write)
+- Plug the provided AMI and subnet ID values into your code
+- Initialize and review your Terraform code (Plan)
+- Deploy your Terraform code (Apply), verify your resources and clean up
+
+```T
+provider "aws" {
+  region = "us-east-1"
+}
+resource "aws_instance" "vm" {
+  ami           = "DUMMY_VALUE_AMI_ID"
+  subnet_id     = "DUMMY_VALUE_SUBNET_ID"
+  instance_type = "t3.micro"
+  tags = {
+    Name = "my-first-tf-node"
+  }
+}
+```
+
+### IaC With Terraform - Recap
+
+- Terraform supports most major cloud providers, with an ever-expanding list of common and uncommon cloud providers
+- Terraform workflow: Write > Plan > Apply - the recommended Terraform workflow is to write the code (Write), review it (Plan), and then execute/deploy the code (Apply)
+- **terraform init** command initializes a working directory containing Terraform configuration files. This is the first command that should be executed after writing a new Terraform configuration or cloning an existing one from version control. It is safe to run this command multiple times. Reference: [Commmand: init](https://developer.hashicorp.com/terraform/cli/commands/init) 
+- **terraform init** configures and sets up the backend which will store the state file
+- **terraform apply** deploys resources into real environments and tracks them through a state file
+- **terraform plan** command goes through the code and creates a plan of execution on which the apply command acts, it outputs a plan of the actions that will be taken during deployment for review prior to execution
+- **terraform destroy** is a destructive command which deletes all resources being tracked via the Terraform state file; it cleans up and deletes all infrastructure tracked in the state file
+- Benefits of using Terraform as an IaC tool:
+  - Tracks state of each resource deployed and allows for a consistent deployment each time.
+  - Interacts and takes care of the communication with control-layer APIs with ease
+  - Automate software-defined networks deployments
+
+## Terraform Fundamentals
+
+### Installing Terraform and Terraform Providers
+
+>>>
 
 ## 7 Implement and Maintain State
 
