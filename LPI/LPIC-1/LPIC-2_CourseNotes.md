@@ -434,3 +434,12 @@ mdadm --zero-superblock /dev/sdb1 /dev/sdc1 /dev/sdd1
 cat /dev/null > /etc/mdadm.conf
 ```
 
+### DNS
+
+```Bash
+# service named
+systemctl status named
+/etc/named.conf # options
+# {directory listen-on port, forwarders, allow-transfer, allow-notify, allow-query}
+/var/named
+```
