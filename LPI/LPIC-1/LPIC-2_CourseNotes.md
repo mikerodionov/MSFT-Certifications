@@ -443,3 +443,9 @@ systemctl status named
 # {directory listen-on port, forwarders, allow-transfer, allow-notify, allow-query}
 /var/named
 ```
+
+## Web Services - Apache
+
+## Web Services - Nginx
+
+## Web Services - Squid
