@@ -449,3 +449,57 @@ systemctl status named
 ## Web Services - Nginx
 
 ## Web Services - Squid
+
+## DHCP
+
+## Storage
+
+iSCSI
+
+## freeIPA
+
+IPA = Identity Policy Audit
+
+UI - web or CLI tools
+
+IPA Server includes: Kerberos KDC, Directory Server, Certificate System (Internal Directory Server), DNS, NIP
+
+Domain Controller server for Linux and Unix.
+
+## Dovecot - SMTP and POP3 server
+
+In RedHat EL 7 and CentOS 7 imap package is replaced by dovecot.
+
+```Bash
+# Install
+sudo yum install dovecot -y
+
+# Configure
+sudo vi /etc/dovecot/dovecot.conf
+# line 24: uncomment
+# protocols = imap pop3 lmtp
+# line 30: uncomment and change (if IPv6 is not used)
+# listen =*
+sudo vi /etc/dovecot/conf.d/10-auth.conf
+# line 10: uncomment and change
+# disable_plaintext_auth = no
+# line 100: add
+# auth_mechanisms = plain login
+sudo vi /etc/dovecot/conf.d/10-mail.conf
+# line 30: uncomment and add
+# mail_location = maildir:~/Maildir
+sudo vi /etc/dovecot/conf.d/10-ssl.conf
+# line 8: change (not require SSL)
+# ssl = no
+sudo vi /etc/procmailrc
+# add line
+# DEFAULT=$HOME/Maildir/
+sudi mkdir /etc/skel/Maildir
+
+# Start dovecot
+systemctl start dovecot
+systemctl enable dovecot
+
+# Verify / check logs
+tail -f /var/log/maillog
+```
