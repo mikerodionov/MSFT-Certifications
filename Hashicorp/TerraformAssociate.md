@@ -185,7 +185,8 @@ Terraform Core Workflow: Write Code > Plan/Review > Deploy/Apply
 Terraform Code
 
 - Terraform executes code in files with the .tf extension
-- By default, terraform looks for providers in the **Terraform providers registry** - https://registry.terraform.io/browse/providers
+- By default, terraform looks for providers in the **Terraform providers registry** - https://registry.terraform.io/browse/providers, but providers can also be sourced locally or internally
+- Custom providers can be created
 
 ```T
 ### Provider configuration block sample
@@ -209,7 +210,7 @@ resource "aws_instance" "web" {
    ami           = "ami-a1b2c3d4"
    instance_type = "t2.micro"
 }
-# resource - reseved keyword
+# resource - reseved keyword, creates resource
 # "aws_instance" - resource provided by Terraform provider
 # "web" - user-provided arbitrary resource name
 # {} - resource config arguments, depend on resource you create
@@ -250,17 +251,27 @@ resource "aws_instance" "vm" {
 
 ### IaC With Terraform - Recap
 
-- Terraform supports most major cloud providers, with an ever-expanding list of common and uncommon cloud providers
-- Terraform workflow: Write > Plan > Apply - the recommended Terraform workflow is to write the code (Write), review it (Plan), and then execute/deploy the code (Apply)
-- **terraform init** command initializes a working directory containing Terraform configuration files. This is the first command that should be executed after writing a new Terraform configuration or cloning an existing one from version control. It is safe to run this command multiple times. Reference: [Commmand: init](https://developer.hashicorp.com/terraform/cli/commands/init) 
-- **terraform init** configures and sets up the backend which will store the state file
-- **terraform apply** deploys resources into real environments and tracks them through a state file
-- **terraform plan** command goes through the code and creates a plan of execution on which the apply command acts, it outputs a plan of the actions that will be taken during deployment for review prior to execution
-- **terraform destroy** is a destructive command which deletes all resources being tracked via the Terraform state file; it cleans up and deletes all infrastructure tracked in the state file
+- Terraform supports most major cloud providers, with a growing list of common and uncommon cloud providers
+- Terraform workflow - **Write > Plan > Apply** - the recommended Terraform workflow is to write the code (Write), review it (Plan), and then execute/deploy the code (Apply)
+
 - Benefits of using Terraform as an IaC tool:
   - Tracks state of each resource deployed and allows for a consistent deployment each time.
   - Interacts and takes care of the communication with control-layer APIs with ease
   - Automate software-defined networks deployments
+
+- **terraform init** command
+   - initializes a working directory containing Terraform configuration files
+   - configures and sets up the backend which will store the state file
+   - the first command that should be executed after writing a new Terraform configuration or cloning an existing one from version control
+   - it is safe to run this command multiple times
+   - more information: [Commmand: init](https://developer.hashicorp.com/terraform/cli/commands/init) 
+- **terraform apply** deploys resources into real environments and tracks them through a state file
+- **terraform plan** command
+   - goes through the code and creates a plan of execution on which the apply command acts
+   - outputs a plan of the actions that will be taken during deployment for review prior to execution
+- **terraform destroy** 
+   - destructive command which deletes all resources being tracked via the Terraform state file
+   - cleans up and deletes all infrastructure tracked in the state file
 
 ## Terraform Fundamentals
 
