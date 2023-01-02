@@ -691,6 +691,50 @@ terraform plan
 terraform apply
 curl http://<PUBLIC_IP>
 ```
+
+### Terraform Fundamentals Recap
+
+**Terraform provisioners** - help bootstrap custom commands onto the resources being deployed via Terraform, they can help execute custom scripts and commands on resources. Best practice is to avoid using them if a built-in mechanism is provided by the resource API itself.
+
+**Terraform providers** - plugins that enable Terraform to interface with the API layer of various cloud platforms and environments, Terraform relies on these plugins to interact with remote systems. Without providers, Terraform can't manage any kind of infrastructure. See [Providers Overview](https://developer.hashicorp.com/terraform/language/providers)
+
+Providers can be sourced in a different ways:
+- By default, Terraform looks for providers in the Terraform provider registry - https://registry.terraform.io
+- You can reference providers from an internal registry in your Terraform code
+- You can reference providers locally in your Terraform configuration
+
+**Terraform variables**
+
+- Can be predefined in a variables.tf or terraform.tfvars file
+- They can be included in the command line options - ```terraform apply -var variable_name="value"```
+- They can be pulled down from Terraform Cloud and referenced in your code - Terraform Cloud workspaces can set values for input and shell environment variables
+
+```Bash
+# Variable definition can contain default value
+variable "replicas" {
+  type = number
+  default = 5
+}
+
+# Default value can be redefined when running terraform apply
+terraform apply -var replicas=1
+```
+
+**Terraform state**
+
+- stored by default in a local file named **terraform.tfstate**, but it can also be stored remotely, which works better in a team environment; more information - [Terraform State Overview](https://developer.hashicorp.com/terraform/language/state)
+- JSON format file
+
+**Terraform output variables**
+
+- When using remote state, **root module outputs can be accessed by other configurations** via a **terraform_remote_state data source**
+- **A root module can use outputs to print certain values in the CLI output after running terraform apply**
+- **A child module can use outputs to expose a subset of its resource attributes to a parent module**
+
+## Terraform State
+
+### Terraform State Command
+
 >>>
 
 ## 7 Implement and Maintain State
