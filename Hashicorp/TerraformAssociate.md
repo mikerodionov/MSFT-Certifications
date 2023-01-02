@@ -95,19 +95,24 @@ Other IaC tools: Ansible, Chef, Puppet
 
 ### IaC and Its Benefits
 
-What is IaC?
+What is an IaC?
+
 - No more clicks - write down what you want to deploy in a human readable way
-- Enables DevOps - codification of deployments means they can be tracked down in version control enabling better visibility and collaboration across teams
+- DevOps enabler - codification of deployments means they can be tracked down in version control enabling better visibility and collaboration across teams, and additionaly code acts as an infra documentation
 - Declare your infrastructure - infra is mostly written using declarative code but can be procedural(imperative) too
 - Speed, reduced costs and risk - less human intervention during deployment reduces probability of securety flaws, unnecessary resources and saves time
 
 Terraform code sample
 
+- HCL (HashiCorp Configuration Language)
+- Terraform code is easy to read
+- Allows for  use of variables ang logic control
+
 ```h
-# Declare provider
+# Declare provider - AWS
 provider "aws" {}
 
-# Create VPC in us-east-1
+# Create resource - AWS VPC in us-east-1
 resource "aws_vpc" "vpc_master" {
     cidr_block = "10.0.0.0/16"
     enable_dns_support = true
@@ -121,20 +126,23 @@ resource "aws_vpc" "vpc_master" {
 ### Cloug Agnostic IaC with Terraform
 
 Terraform benefits
-- Automate software defined networking (SDN)
+- Automate software defined networking (SDN - AWS VPC etc.)
 - Interacts and takes care of communication with control layer APIs with ease
-- Supports a vast array of private and public cloud vendors (major cloud, cloud, network, infrastructure software, database etc.)
+- Supports a vast array of providers for private and public cloud vendors
+   - major cloud (AWS, Azure, GCP)
+   - cloud (DigitalOcean, Fastly, Heroku)
+   - network, infrastructure software, database etc.
 - Tracks state of each resource deployed
 
 ### Understanding IaC - Recap
 
 **Cloud agnostic** = technology not bound to one cloud and can work in a similar fashion across other cloud environments. Terraform doesn't care what cloud or infrastructure deployment method you're using and it works seamlessly with a long (and growing) list of cloud platforms.
 
-IaC enables organizations to have better DevOps practices by tracking infrastructure code and deploying it in a repeatable, predictable manner. IaC is a great way to enable quick deployments and collaboration across teams.
+IaC **enables** organizations **to have better DevOps practices by tracking infrastructure code and deploying it in a repeatable, predictable manner**. IaC is a great way to enable quick deployments and collaboration across teams.
 
 Terraform uses its own language known as **HashiCorp Configuration Language (HCL)**.
 
-IaC is a method of writing human-readable code to deploy resources in the cloud and elsewhere. IaC = code that deploys your infrastructure resources onto various platforms instead of managing them manually through a user interface.
+IaC is a **method** of **writing human-readable code to deploy resources in the cloud and elsewhere**. IaC = code that deploys your infrastructure resources onto various platforms instead of managing them manually through a user interface.
 
 ## IaC With Terraform
 
@@ -143,43 +151,44 @@ IaC is a method of writing human-readable code to deploy resources in the cloud 
 The Core Terraform Workflow: Write > Plan > Apply
 
 Write - write your Terraform code - this would generally start off with creating a GitHub repo as a common best practice
-Plan - continually add and review changes to code in your project
+Plan  - continually add and review changes to code in your project
 Apply - after final review/plan, deploy/provision real infrastructure
 
 ### Terraform Init (Initializing the Working Directory)
 
 **terraform init** - initializes the working directory that contains your Terraform code
-- Downloads ancillary components - providers, modules and plugins
-- Sets up the backend for storing Terraform state file, a mechanism by which Terraform tracks resources
+   - **Downloads ancillary components** - providers, modules and plugins
+   - **Sets up the backend for storing Terraform state file**, a mechanism by which Terraform tracks resources
 
 ### Terraform Key Conecpts: Plan, Apply, and Destroy
 
 Terraform Core Workflow: Write Code > Plan/Review > Deploy/Apply
 
-Terraform Plan
+#### Terraform Plan
 
-- Reads the code and then creates and shows a "plan" of execution/deployment; this command does not deploy anything and can be considered as a read only command
+- Reads the code and then creates and shows a "plan" of execution/deployment; this command does not deploy anything and can be considered as **a read-only command**
 - Allows you to review the action plan before executing anything
 - At this stage authentication credentials are used to connect to your infrastructure, if required
 
-Terraform Apply
+#### Terraform Apply
 
 - Deploys the instructions and statements in the code
-- Updates the deployment state tracking mechanism file, aka "state file"
+- Updates the **deployment state tracking mechanism** file, aka **"state file"** - terraform.tfstate
 
-Terraform Destroy
+#### Terraform Destroy
 
 - Looks at the recorded, stored state file created during deployment and destroys all resources created by toyr code
-- Should be used with caution, as it is a non-reversible command; take backups, and be sure that you want to delete infrastructure
+- Should be used with caution, as it is **a non-reversible command**; take backups, and be sure that you want to delete infrastructure
 
 ### Resource Addressing in Terraform
 
 Terraform Code
+
 - Terraform executes code in files with the .tf extension
 - By default, terraform looks for providers in the **Terraform providers registry** - https://registry.terraform.io/browse/providers
 
 ```T
-### Configuring provider
+### Provider configuration block sample
 provider "aws" {
    region = "us-east-1"
 }
@@ -206,7 +215,7 @@ resource "aws_instance" "web" {
 # {} - resource config arguments, depend on resource you create
 # resource address = aws_instance.web
 
-### Data source block example
+### Data source block sample
 data "aws_instance" "my_vm" {
    instance_id = "i-1234567890abcdef0"
 }
