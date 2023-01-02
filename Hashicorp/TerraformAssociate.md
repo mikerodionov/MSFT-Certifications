@@ -327,6 +327,371 @@ provider "aws" {
 }
 ```
 
+Setting debug level logging for TF
+
+```Bash
+export TF_LOG=TRACE
+terraform init
+# Providers get downloaded into hidden folder named .terraform
+ls -a
+```
+
+### Terraform State Concept
+
+Why state is required?
+
+- Resource tracking - a way for Terraform to keep tabs on what has been deployed
+- Critical for TF functionality - acts as a basis for TF to decide whether resource has to be created, modified or destroyed
+- terraform.tfstate - flat JSON file which contains metadata about TF deployment and deployed resources
+- Stored either locally in the same directory as TF code or remotely
+- Allows TF to calculate deployment deltas and create new deployment plans
+- Keep state file safe (may contain sensitive data) and backed up
+
+### Terraform Variables and Outputs
+
+#### Variables in Terraform
+
+```Bash
+### Variable definition example
+variable "var1" {
+   description = "Test variable"
+   type        = string
+   default     = "Test"
+}
+# variable - reserved keyword
+# var1 - user defined variable name
+# {} - variable config arguments - description, type, default value
+
+### Variable reference example
+var.var1
+
+### Variable validation example
+variable "var1" {
+   description = "Test variable"
+   type        = string
+   default     = "Test"
+   validation {
+      condition     = length(var.var1) > 4
+      error_message = "The string must be more than 4 characters"
+   }
+}
+
+### Sensitive parameter can be used to prevent variable value to show up during TF execution
+variable "var1" {
+   description = "Test variable"
+   type        = string
+   default     = "Test"
+   sensitive   = true
+}
+
+### Variable types
+# Base types - string, number, bool
+
+# string - ""
+variable "my_id" {
+   type  = string
+   default = "ID001"
+}
+
+# simple list - []
+variable "az_names" {
+   type    = list(string)
+   default = ["us-west-1a"]
+}
+
+# complex list - []
+variable "docker_ports" {
+   type    = list(object({
+      internal = number
+      external = number
+      protocol = string
+   }))
+   default = [
+     {
+      internal = 8300
+      external = 8300
+      protocol = "tcp"
+     }
+   ]
+}
+
+# Complex types - list, set, map, object, tuple
+```
+
+- Best practice - keep variables in a separate file **terraform.tfvars**
+- Validation block can be added to ensure that only correct value can be provided/define accepted values (TF 0.13+ feature, used to be experimental feature in 0.12)
+- Sensitive parameter can be used to prevent variable value to show up during TF execution
+- Base types
+   - string
+   - number
+   - bool
+- Complex types
+   - list
+   - set
+   - map
+   - object
+   - tuple
+- Runtime variable precedence (from high to low)
+   - OS env variables
+   - terraform.tfvars
+
+#### Terraform Outputs
+
+Output value are return values that you want to track after a successful Terraform deployment.
+
+```Bash
+# Output example
+output "instance_ip" {
+   description = "VM's private IP"
+   value       = aws_instance.my-vm.private_ip
+}
+# output - reserved keyword
+# instance_ip - user provided name
+# {} - description & value, value can be assigned directly or using variables references
+
+# Output variable values are shown in the shell when running terraform apply
+```
+
+### Terraform Provisioners
+
+- Terraform's way of bootstrapping custom scripts, command or actions
+- Can be run either locally (on Terraform host) or remotely (on resources being created by Terraform deployment)
+- Within a Terraform code, each individual resource can have its own provisioner defining the connection method (SSH or WinRM) and the actuins/commands to execute
+- 2 types
+   - Creation-time
+   - Destroy-time
+
+#### Terraform Provisioners - Best Practices & Caveats
+
+- HashiCorp recommends using provisioners as a last resort and try using inherent mechanisms within your infra deployment to carry out custom tasks where possible (e.g. it is better to use AWS EC2 instance user data and other resource specific built-in options)
+- TF cannot track changes to provisioners as they can take any independent action, hence they are not tracked by TF state files
+- Provisioners are recommended for use when you need to invoke actions not covered by Terraform's declarative model or resource inherent options
+- If a command within a provisioner returns non-zero return code, it's considered failed and underlying resource is tainted (marks resource to be provisioned again on the next run)
+
+```Bash
+### Provisioner example
+# provisioner gets run against resource
+# null_resource emulates resource life-cycle without any backend actions by default, can be created, destroyed, modified
+# create & destroy provisioners
+
+resource "null_resource" "test_resource" {
+   provisioner "local-exec" {
+      command = "echo 'CREATED' > status.txt"
+   }
+
+   provisioner "local-exec" {
+      when = destroy
+      command = "echo 'DESTROYED' > status.txt"
+   }
+}
+
+# within provisioners use of TF variable references is not allowed as it can create cyclical dependencies (referencing resource not yet being created)
+# so instead of var.ec2vm.id you will ne using self.id within provisioner block to reference resource to wich provisioner is attached
+
+resource "aws_instance" "ec2vm" {
+   ami                         = ami-12345
+   instance_type               = t2.micro
+   key_name                    = aws_key_pair.master-key.key_name
+   associate_public_ip_address = true
+   vpc_security_group_ids      = [aws_security_group.jenkins-sg.id]
+   subnet_id                   = aws_subnet.subnet.id
+   provisioner "local-exec" {
+      command = "aws ec2 wait instance-status-ok --region us-east-1 --instance-ids ${self.id}"
+   }
+}
+```
+
+### Installing Terraform and Working with Terraform Providers
+
+- Download and Manually Install the Terraform Binary
+- Clone over Code for Terraform Providers
+- Deploy the Code with Terraform Apply 
+
+```Bash
+# Download & manually install TF
+# https://developer.hashicorp.com/terraform/downloads
+wget -c https://releases.hashicorp.com/terraform/1.3.6/terraform_1.3.6_linux_amd64.zip
+unzip terraform_1.3.6_linux_amd64.zip
+sudo mv terraform /usr/sbin/
+terraform version
+
+# Manually install providers
+mkdir providers
+cd providers
+
+# TF file with muliple instances of AWS provider targeting different regions and having aliases
+cat <<EOF > main.tf
+provider "aws" {
+  alias  = "us-east-1"
+  region = "us-east-1"
+}
+
+provider "aws" {
+  alias  = "us-west-2"
+  region = "us-west-2"
+}
+
+resource "aws_sns_topic" "topic-us-east" {
+  provider = aws.us-east-1
+  name     = "topic-us-east"
+}
+
+resource "aws_sns_topic" "topic-us-west" {
+  provider = aws.us-west-2
+  name     = "topic-us-west"
+}
+EOF
+
+export TF_LOG=TRACE # enable trace logging to see how providers get downloaded
+terraform init
+ls -a # to see .terraform directory into which providers get downloaded
+terraform fmt # beautifies and makes your code consistent
+export TF_LOG= # disable trace logging
+terraform plan
+terraform apply # we will see in resource ARN that resources got created within different regions
+terraform destroy --auto-approve
+```
+
+### Using Terraform Provisioners to Set Up an Apache Web Server on AWS
+
+```Bash
+# Create EC2 instance and use remote provisioner to set up Apache web server on it
+# connection block configures connectivity for provisioned
+cat <<EOF > main.tf
+#Create and bootstrap webserver
+resource "aws_instance" "webserver" {
+  ami                         = data.aws_ssm_parameter.webserver-ami.value
+  instance_type               = "t3.micro"
+  key_name                    = aws_key_pair.webserver-key.key_name
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.sg.id]
+  subnet_id                   = aws_subnet.subnet.id
+  provisioner "remote-exec" {
+    inline = [
+      "sudo yum -y install httpd && sudo systemctl start httpd",
+      "echo '<h1><center>My Test Website With Help From Terraform Provisioner</center></h1>' > index.html",
+      "sudo mv index.html /var/www/html/"
+    ]
+    connection {
+      type        = "ssh"
+      user        = "ec2-user"
+      private_key = file("~/.ssh/id_rsa")
+      host        = self.public_ip
+    }
+  }
+  tags = {
+    Name = "webserver"
+  }
+}
+EOF
+
+cat <<EOF > setup.tf
+provider "aws" {
+  region = "us-east-1"
+}
+
+#Create key-pair for logging into EC2 in us-east-1
+resource "aws_key_pair" "webserver-key" {
+  key_name   = "webserver-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+
+#Get Linux AMI ID using SSM Parameter endpoint in us-east-1
+data "aws_ssm_parameter" "webserver-ami" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+#Create VPC in us-east-1
+resource "aws_vpc" "vpc" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "terraform-vpc"
+  }
+
+}
+
+#Create IGW in us-east-1
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
+}
+
+#Get main route table to modify
+data "aws_route_table" "main_route_table" {
+  filter {
+    name   = "association.main"
+    values = ["true"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [aws_vpc.vpc.id]
+  }
+}
+#Create route table in us-east-1
+resource "aws_default_route_table" "internet_route" {
+  default_route_table_id = data.aws_route_table.main_route_table.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+  tags = {
+    Name = "Terraform-RouteTable"
+  }
+}
+
+#Get all available AZ's in VPC for master region
+data "aws_availability_zones" "azs" {
+  state = "available"
+}
+
+#Create subnet # 1 in us-east-1
+resource "aws_subnet" "subnet" {
+  availability_zone = element(data.aws_availability_zones.azs.names, 0)
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.1.0/24"
+}
+
+
+#Create SG for allowing TCP/80 & TCP/22
+resource "aws_security_group" "sg" {
+  name        = "sg"
+  description = "Allow TCP/80 & TCP/22"
+  vpc_id      = aws_vpc.vpc.id
+  ingress {
+    description = "Allow SSH traffic"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "allow traffic from TCP/80"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "Webserver-Public-IP" {
+  value = aws_instance.webserver.public_ip
+}
+EOF
+
+terraform init
+terraform plan
+terraform apply
+curl http://<PUBLIC_IP>
+```
+>>>
 
 ## 7 Implement and Maintain State
 
