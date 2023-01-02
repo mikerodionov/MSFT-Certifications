@@ -11,7 +11,7 @@
 - Online Proctored
 - 2 years validity period
 
-### Exam Objectives
+### Exam Objectives (9)
 
 1. Understand Infrastructure as Code (IaC) concepts
    - Explain/define IaC
@@ -85,9 +85,11 @@
 ### Certification benefits
 
 - Verify your skills as an IaC practitioner
-- Expand your skills and knowledge about Terraform and best practices
+- Expand your skills and knowledge about Terraform and its best practices
 - Get insights into the Enterprise features of Terraform
-- Solidify Terraform fundamentals and kickstart your journey to more advanced deployments
+- Solidify Terraform fundamentals and know the basics for more advanced deployments
+
+Other IaC tools: Ansible, Chef, Puppet
 
 ## Understanding IaC
 
