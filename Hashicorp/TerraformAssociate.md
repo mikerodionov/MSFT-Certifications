@@ -277,7 +277,56 @@ resource "aws_instance" "vm" {
 
 ### Installing Terraform and Terraform Providers
 
->>>
+#### Method 1: Download, unzip, use
+
+- Download OS specific zipped binary from [HashiCorp web site](https://developer.hashicorp.com/terraform/downloads?product_intent=terraform)
+- Unzip Terraform binary
+- Add path to Terraform binary into the system's $PATH variable
+
+```Bash
+wget -c <URL>
+unzip <FILENAME>
+# add path to $PATH var or move executable into a directory which is already added into $PATH (e.g. /bin)
+terraform --version
+```
+
+#### Method 2: Set up Terraform reposiotory (Linux)
+
+- Add/configure a HashiCorp Terraform repo on Linux (Debian, RHEL, Amazon Linux)
+- Use package manager to install Terraform
+- Package manager installs and sets up Terraform making it ready to use
+
+```Bash
+# CentOS/RHEL
+sudo yum install -y yum-utils
+sudo yum-config-manager --add-repo https://rpm.releases.hashicorp.com/RHEL/hashicorp.repo
+sudo yum -y install terraform
+terraform --version
+terraform -help
+```
+
+#### Terraform Providers
+
+- Providers are Terraform's way of abstracting integrations with API control layer of the infrastructure vendors
+- By default, Terraform looks for providers in the Terraform Providers Registry - https://registry.terraform.io/browse/providers
+- Providers are Terraform's plugins and have a separate release cadence from Terraform itself, with each privder having its own versioning and release cadence
+- You can write your own custom providers (out of scope for Terraform Associate certification)
+- Terraform locates and installs providers when initializing working directory when **terraform init** command is executed
+- Best practice - peg down provider to a specific version to prevent provider side changes from breaking your TF code
+
+```H
+## Providers example
+provider "azurerm" {
+   version = "2.20.0"
+   features
+}
+
+provider "aws" {
+   version = "3.7.0"
+   region = "us-east-1"
+}
+```
+
 
 ## 7 Implement and Maintain State
 
