@@ -735,6 +735,118 @@ terraform apply -var replicas=1
 
 ### Terraform State Command
 
+Terraform State
+
+- Maps real-world resources to Terraform configuration
+- By default, stored locally in a terraform.tfstate file, but can be stored in AWS S3 bucket or in Azure blob container
+- Prior to any modification operation, Terraform refreshes the state file
+- Resource dependency metadata is also tracked via the state file
+- Helps to boost deployment performance by caching resource attributes for subsequent use
+
+Terraform State Command
+
+- Terraform state command is an utility for manipulating and reading the Terraform state file
+- Usage scenarios:
+  - Advanced state management
+  - Manually remove a resource from a Terraform state file
+  - List out tracked resources and their details (via state and list subcommands)
+
+Common Terraform State Sub-Commands
+
+```Bash
+- terraform state list # list out all the resources tracked by the TF state file
+- terraform state rm # delete a resource from the TF state file
+- terraform state show # show details of a resource tracked in the TF state file
+
+cat <<EOF > main.tf
+# Configure Docker provider
+terraform {
+  required_providers {  
+    docker = {
+      source = "kreuzwerker/docker"
+      version = "2.24.0"
+    }
+  }
+}
+
+provider "docker" {
+  host = "unix:///var/run/docker.sock"
+}
+
+# Image to be used by container
+resource "docker_image" "terraform-centos" {
+  name         = "centos:7"
+  keep_locally = true
+}
+
+# Create a container
+resource "docker_container" "centos" {
+  image = docker_image.terraform-centos.latest
+  name  = "terraform-centos"
+  start = true
+  command = ["/bin/sleep", "500"]
+}
+EOF
+
+terraform init
+terraform apply
+terraform state list
+terraform state show docker_container.centos
+terraform state show docker_image.terraform-centos
+terraform state rm docker_container.centos # remove resource from the state aka "unmanage" make resource not not managed by TF
+```
+
+### Local and Remote State Storage
+
+#### Local State Storage
+
+- Default option/behavior
+- Saves Terraform state locally on your system
+- Used when not working in a team/for testing
+- Allows locking state so that parallel executions don't coincide
+
+#### Remote State Storage
+
+- Optional behavior
+- Saves state to a remote data storage - AWS S3, Azure Blob Container, Google Storage
+- Allows sharing state file between distributed teams - remote state accessible to multiple teams/users for collaboration
+- Allows locking state so that parallel executions don't coincide - **not supported for all remote storage backends**
+  - Supported by Azure Blob Container, AWS S3, Google Cloud Storage, HashiCorp Consul
+- Enables sharing "output" values with other Terraform configuration or code
+  - Execute > Save state on remote storage
+  - Outputs accessible everywhere
+
+### Persisting Terraform State in AWS S3
+
+Remote state backend configured using special TF block named backend.
+
+```Bash
+# Define S3 backend for remote state storage
+terraform {
+  backend "S3" {
+    region = "us-east-1"
+    key    = "terraformstatefile"
+    bucket = "s3bucket03012022"
+  }
+}
+
+cat <<EOF > backend.tf
+terraform {
+  required_providers {  
+    docker = {
+      source = "kreuzwerker/docker"
+      version = "2.24.0"
+    }
+  }
+  backend "S3" {
+    region = "us-east-1"
+    key    = "terraformstatefile"
+    bucket = "s3bucket03012022"
+  }
+}
+
+EOF
+```
 >>>
 
 ## 7 Implement and Maintain State
