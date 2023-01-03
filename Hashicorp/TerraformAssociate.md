@@ -821,6 +821,10 @@ terraform state rm docker_container.centos # remove resource from the state aka 
 Remote state backend configured using special TF block named backend.
 
 ```Bash
+# Configure profile & pre-create bucket
+aws --profile demo configure
+aws --profile demo s3api create-bucket --bucket s3bucket03012022
+
 # Define S3 backend for remote state storage
 terraform {
   backend "S3" {
@@ -830,6 +834,7 @@ terraform {
   }
 }
 
+# backend.tf
 cat <<EOF > backend.tf
 terraform {
   required_providers {  
@@ -838,15 +843,238 @@ terraform {
       version = "2.24.0"
     }
   }
-  backend "S3" {
-    region = "us-east-1"
-    key    = "terraformstatefile"
-    bucket = "s3bucket03012022"
+  required_version = ">= 0.13"
+  backend "s3" {
+    profile = "demo"
+    region  = "us-east-1"
+    key     = "terraformstatefile"
+    bucket  = "s3bucket03012022"
   }
 }
-
 EOF
+
+#  main.tf
+cat <<EOF > main.tf
+provider "docker" {
+  host = "unix:///var/run/docker.sock"
+}
+
+resource "docker_image" "nginx" {
+  name = "nginx"  
+}
+
+resource "docker_container" "nginx" {
+  image = docker_image.nginx-image.latest
+  name  = "nginx"
+  ports {
+    internal = 80
+    external = var.external_port
+    protocol = "tcp"
+    }
+}
+
+output "url" {
+  description = "Browser URL for container site"
+  value       = join(":",["http://localhost", tostring(var.external_port)])
+}
+EOF
+
+# variables.tf
+cat <<EOF > varibles.tf
+variable "external_port" {
+  type    = number
+  default = 8080
+  validation {
+    condition = can(regex("8080|80", var.external_port))
+    error_message = "Port values can only be 8080 or 80"
+  }
+}
+EOF
+
+terraform init
+terraform plan
+terraform apply
+terraform apply -var external_port=9999 # test var validation
+
+aws --profile demo s3 cp s3://s3bucket03012022/terraform.tfstate .
+less terraform.tfstate
+
+terraform destroy
 ```
+
+### Exploring Terraform State Functionality
+
+- Check Terraform and Minikube Status
+- Clone Terraform Code and Switch to the Proper Directory
+- Deploy Terraform Code And Observe the State File
+
+```Bash
+# https://github.com/linuxacademy/content-hashicorp-certified-terraform-associate-foundations.git
+terraform version
+minikube status
+
+# main.tf
+cat <<EOF > main.tf
+provider "kubernetes" {
+  config_path = "~/.kube/config"
+}
+
+resource "kubernetes_deployment" "tf-k8s-deployment" {
+  metadata {
+    name = "tf-k8s-deploy"
+    labels = {
+      name = "terraform-k8s-deployment"
+    }
+  }
+
+  spec {
+    replicas = 2
+
+    selector {
+      match_labels = {
+        name = "terraform-k8s-deployment"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          name = "terraform-k8s-deployment"
+        }
+      }
+
+      spec {
+        container {
+          image = "nginx"
+          name  = "nginx"
+
+        }
+      }
+    }
+  }
+}
+EOF
+
+# service.tf - creates K8s service
+cat <<EOF > service.tf
+resource "kubernetes_service" "tf-k8s-service" {
+  metadata {
+    name = "terraform-k8s-service"
+    labels = {
+      name = "tf-k8s-deploy"
+    }
+  }
+  spec {
+    port {
+      port        = 80
+      target_port = 80
+      node_port   = 30080
+    }
+    type = "NodePort"
+  }
+}
+EOF
+
+terraform init
+terraform plan
+ls # no statefile generated yet
+terraform apply
+ls # terraform.tfstate file created
+kubectl get pods
+terraform state list
+terraform state show kubernetes_deployment.tf-k8s-deployment
+# check N of replicas for deployment tracked by state file
+terraform state show kubernetes_deployment.tf-k8s-deployment | egrep replicas
+# change N of replicas in TF code
+vi main.tf # change replicas = 2 to replicas = 4 and save
+terraform plan
+terraform apply
+kubectl get pods
+# check N of replicas for deployment tracked by state file
+terraform state show kubernetes_deployment.tf-k8s-deployment | egrep replicas
+
+terraform destroy
+kubectl get pods # pods terminated and removed
+ls # terraform.tfstate is cleaned out, terraform.tfstate.backup file appeared
+less terraform.tfstate.backup # last good working backup
+```
+
+### Recap Terraform State
+
+- terraform.tfstate - local file which stores Terraform state, after deploying your infrastructure, Terraform generates this state file locally within your Terraform configuration directory
+- remote state can be configured in the terraform block, using the backend attribute, there are a number of preset platforms on which you can set Terraform to store state remotely, including AWS S3 storage and Google Cloud storage
+
+```H
+terraform {
+  backend "s3" {
+    profile = "demo"
+    region  = "us-east-1"
+    key     = "terraformstatefile"
+    bucket  = "s3bucket03012022"
+  }
+}
+```
+- remote state provides granular access, integrity, security, availability, and collaboration
+- Terraform handles dependencies in your infra when deploying or destroying resources using state file, the Terraform state file is a map of all resources and their dependencies. It is essential for Terraform to work properly
+- Terraform state maps real-world resources to Terraform configuration/code, it is a map between real-world resource IDs and configurations to logical resources in your Terraform code
+
+```Bash
+terraform state list # list all of the resources in the Terraform state
+
+```
+
+## Terraform Modules
+
+### Accessing and Using Terraform Modules
+
+Terraform Modules
+
+- A module is a container for multiple resources that are used together
+- Every TF Configuration has at least one module, called the **root module**, which consists of code files in your main working directory
+
+Accessing Terraform Modules
+
+- Modules can be downloaded or referenced from
+  - Terraform Public Registry (modules get downloaded and placed into hidden directory)
+  - Private Registry
+  - Local system - sourced via local path
+- Modules are referenced using a **module block**
+- As a best practic specific version of module should be always set as required, to avoid module updates causing unwanted effects on your deployments
+- Modules can optionally take input and provide outputs to plug back into your main code
+
+```Bash
+module "my-vpc-module" {
+  source = "./modules/vpc"
+  version = "0.0.5" 
+  region = var.region
+}
+# module - reserved keyword
+# my-vpc-module - module name
+# {} - parameters
+# source - module source, mandatory
+# version - module version, as a best practic specific version of module should be always set as required, to avoid module updates causing unwanted effects on your deployments
+# region - input parameter for module, module can have multiple input parameters
+# other allowed parameters: count, for_each, providers, depends_on
+# count - allows spawning of multiple separate instances of the module's resources
+# for_each - allows iterating over complex variables
+# providers - allows to tie specific providers to the module
+# depends_on - allows to set module dependencies
+```
+
+Consuming outputs provided by a child module
+
+```Bash
+# Accessing module outputs in code
+resource "aws_instance" "my-vpc-module" {
+  .... # other arguments
+  subnet_id = module.my-vpc-module.subnet_id
+}
+# module.my-vpc-module.subnet_id - module output - module.module_name.output_name
+```
+
+### Interacting with Terraform Module Inputs and Outputs
+
+
 >>>
 
 ## 7 Implement and Maintain State
