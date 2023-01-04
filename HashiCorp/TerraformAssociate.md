@@ -1074,6 +1074,22 @@ resource "aws_instance" "my-vpc-module" {
 
 ### Interacting with Terraform Module Inputs and Outputs
 
+#### Module Inputs
+
+- Module inputs are arbitrarily named parameters that you pass inside the module block
+- This modules can be used as variables inside the module code
+- To reference input within the module we use standard TF variable notation
+
+```Bash
+module "my-vpc-module" {
+  source      = "./modules/vpc" # URL or path
+  server-name = 'us-east-1' # input parameter(s) for module
+}
+# to reference input within the module we use standard TF variable notation
+var.server-name
+```
+
+#### Module Outputs
 
 
 >>>
