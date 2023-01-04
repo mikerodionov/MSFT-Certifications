@@ -134,7 +134,7 @@ Terraform benefits
    - network, infrastructure software, database etc.
 - Tracks state of each resource deployed
 
-### Understanding IaC - Recap
+### Understanding IaC Recap
 
 **Cloud agnostic** = technology not bound to one cloud and can work in a similar fashion across other cloud environments. Terraform doesn't care what cloud or infrastructure deployment method you're using and it works seamlessly with a long (and growing) list of cloud platforms.
 
@@ -249,7 +249,7 @@ resource "aws_instance" "vm" {
 }
 ```
 
-### IaC With Terraform - Recap
+### IaC With Terraform Recap
 
 - Terraform supports most major cloud providers, with a growing list of common and uncommon cloud providers
 - Terraform workflow - **Write > Plan > Apply** - the recommended Terraform workflow is to write the code (Write), review it (Plan), and then execute/deploy the code (Apply)
@@ -999,7 +999,7 @@ ls # terraform.tfstate is cleaned out, terraform.tfstate.backup file appeared
 less terraform.tfstate.backup # last good working backup
 ```
 
-### Recap Terraform State
+### Terraform State Recap
 
 - terraform.tfstate - local file which stores Terraform state, after deploying your infrastructure, Terraform generates this state file locally within your Terraform configuration directory
 - remote state can be configured in the terraform block, using the backend attribute, there are a number of preset platforms on which you can set Terraform to store state remotely, including AWS S3 storage and Google Cloud storage
@@ -1091,30 +1091,477 @@ var.server-name
 
 #### Module Outputs
 
+- Module outputs declared inside TF module code can be feed back into the root module or your main code
+- Output invocation convention in TF code - module.<name-of-module>.<name-of-output>
+- 
 
->>>
-
-## 7 Implement and Maintain State
-
-State file VS State
-
-State of the State
-
-Terraform stores state in JSON formatted file called terraform.tfstate, sample content:
-
-```JSON
+```Bash
+# output defined in TF module
+output "ip_address" {
+  value = aws_instance.private_ip
+}
+# output can be called from main TF code
+# output invocation convention in TF code - module.<name-of-module>.<name-of-output>
+module.my-vpc-module.ip_address
 
 ```
 
-Avoid direct man edits of this file. You can open it directly as a file and review
+### Building and Testing a Basic Terraform Module
 
-By default Terraform uses local state storage (terraform.tfstate file stored locally), remote storage can be setup if you working in a team through use of the Terraform backends feature.
+```Bash
+# verify TF install and create TF project folders structure
+terraform version
+mkdir terraform_project
+cd terraform_project
+mkdir -p modules/vpc
+cd modules/vpc/
 
-Recommended way of state inspection is with **terraform list** command
+# main.tf
+cat <<EOF > main.tf
+provider "aws" {
+  region = var.region
+}
 
-- list - list resources in the state
-- mv - move an item in the state
-- pull - pull current state and output to stdout
-- push - update remote state from a local state file
-- rm - remove instances from the state
-- show - show a resource in the state (-json to get json blob output)
+resource "aws_vpc" "this" {
+  cidr_block = "10.0.0.0/16"
+}
+
+resource "aws_subnet" "this" {
+  vpc_id     = aws_vpc.this.id
+  cidr_block = "10.0.1.0/24"
+}
+
+data "aws_ssm_parameter" "this" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+EOF
+
+# variables.tf
+cat <<EOF > variables.tf
+variable "region" {
+  type    = string
+  default = "us-east-1"
+}
+EOF
+
+# outputs.tf - module dir
+cat <<EOF > outputs.tf
+output "subnet_id" {
+  value = aws_subnet.this.id
+}
+
+output "ami_id" {
+  value = data.aws_ssm_parameter.this.value
+}
+EOF
+
+cd ~/terraform_project/
+
+# main.tf
+cat <<EOF > main.tf
+variable "main_region" {
+  type    = string
+  default = "us-east-1"
+}
+
+provider "aws" {
+  region = var.main_region
+}
+
+module "vpc" {
+  source = "./modules/vpc"
+  region = var.main_region
+}
+
+resource "aws_instance" "my-instance" {
+  ami           = module.vpc.ami_id
+  subnet_id     = module.vpc.subnet_id
+  instance_type = "t2.micro"
+}
+EOF
+
+# outputs.tf - main project dir
+cat <<EOF > outputs.tf
+output "PrivateIP" {
+  description = "Private IP of EC2 instance"
+  value       = aws_instance.my-instance.private_ip
+}
+EOF
+
+terraform fmt -recursive # fmt = Reformat your configuration in the standard style
+terraform init # fetches providers & modules
+terraform validate # validates code, validate = Check whether the configuration is valid
+terraform plan
+terraform apply --auto-approve
+terraform state list
+terraform destroy
+```
+
+### Terrafrom Modules Recap
+
+- TF modules are used to make code reusable elsewhere and avoid reinventing the wheel; modules are the main way to package and reuse resource configurations with Terraform. More info: [Terraform Modules Overview](https://developer.hashicorp.com/terraform/language/modules)
+- TF modules sourcing
+  - Terraform Registry - you can reference modules that are hosted on the Terraform public registry, which contains a collection of all publicly available modules
+  - Private Registry - you can also reference modules in a private registry that is hosted by yourself or your organization
+  - Local System - you can have the module code saved in a local folder on your system and reference that folder using its path
+- TF output invocation convention when using module output inside your main code is module.<name-of-module>.<name-of-output>
+- To use TF outputs in main TF code we use **output block in the TF module code**
+
+```Bash
+# TF outputs defined in output block of TF module, and referenced in main TF code using module.<name-of-module>.<name-of-output> notation
+
+# TF prod-module output definition
+output "returned-variable" {
+  value = "1"
+}
+# Calling output from main TF code
+module.prod-module.returned-variable
+```
+
+- Using input in TF module - input variable is being passed using the standard TF variable reference notation, var.
+
+```Bash
+module "my-test-module" {
+  source = "./testm"
+  version = "0.0.5"
+  region = var.datacenter # TF input
+}
+# input variable is being passed using the standard variable reference notation, var.
+```
+
+## Built-in Functions and Dynamic Blocks
+
+### Terraform Built-in Functions
+
+- TF comes pre-packaged with functions to help you transform and combine values
+- User-defined functions are not allowed - only built-in ones can be used
+- General syntax is similar to other program languages: function_name(arg1, arg2, ...)
+- Buil-in functions make TF code dynamic and flexible
+- Complete list of functions can be found [here](https://developer.hashicorp.com/terraform/language/functions), some examples
+  - file - insert file
+  - max - determine max integer value from a provided list
+  - flatten - create single list out of provided set of lists
+
+```Bash
+variable "project_name" {
+  type  = string
+  value = "prod"
+}
+
+resource "aws_vpc" "my-vpc" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = join("-",["terraform", var.project-name]) # resulting value: terraform-prod
+  }
+}
+```
+
+Checking TF built-in functions
+
+- TF console provides CLI for interactive testing/evaluating expressions
+
+```Bash
+terraform console
+max(3,5,9,11) # get numeric max from the list
+timestamp() # get UTC time stamp
+join(" ",["Hello", "world"]) # join list elements using provided separator
+contains(["apple", "banana", "orange", 1, 2, 3], "banana") # check if list contains specific element, returns true/false
+```
+
+### Terraform Type Constraints (Collections & Structural)
+
+Type Constraints - TF Variables
+
+- Type constraints control the type of variable values
+  - Primitive - single type value (number, string, bool)
+  - Complex - multiple types in a single variable (list, tuple, map, object)
+
+Complex Types - Collections
+
+- Collection types allow multiple values of one primitive type to be grouped together
+- Constructors of these collections include
+  - list(type)
+  - map(type)
+  - set(type)
+
+```Bash
+# Complex Types - Collection Example
+variable "training" {
+  type = list(string)
+  defult = ["US", "ES"]
+}
+```
+
+Complex Types - Structural
+
+- Structural types allow multiple values of different primitive types to be grouped together
+- Constructors of these collections include
+  - object(type)
+  - tuple(type)
+  - set(type)
+
+```Bash
+# Complex Types - Structural Example
+variable "instructor" {
+  type = object({ # object type can contain several variables of primitive types within it
+    name = string # var of primitive type string
+    age  = number # var of primitive type number
+  })
+}
+```
+Dynamic Types - The "any" constraint
+
+- any is a placeholder for a primitive type yet to be decided
+- Actual type will be determined at runtime
+
+```Bash
+# Dynamic Type - any example
+variable "data" {
+  type = list(any)
+  default = [1, 42, 7]
+}
+# TF will recognize passed in value types at runtime
+```
+
+### Terraform Dynamic Blocks
+
+What are Dynamic Blocks?
+
+- Dynamically constructs repeatable configuration blocks inside TF resources
+- Supported within the following block types
+  - resource
+  - data
+  - provider
+  - provisioner
+- Used to make your code look cleaner - removing need to repeatitive chunks of nested block resources
+- Dynamic blocks expect a complex variable type to iterate over
+- Acts like a for loop which outputs a nested block for each element in your variable
+- Be careful not to overuse dynamic blocks in main code as it makes your code difficult to read and maintain
+- Best practice is to use dynamic blocks when you need to hide details to build a cleaner UI when wrtiting reusable modules
+  
+```Bash
+# TF code w/o dynamic block
+resource "aws_security_group" "my-sg" {
+  name   = 'my-aws-security-group'
+  vpc_id = aws_vpc.my-vpc.id
+  ingress {
+    from_port = 22
+    to_port   = 22
+    protocol  = "tcp"
+    cidr_blocks = ["1.2.3.4/32"]
+  }
+  ingress {
+    ... # more ingress rules
+  }
+}
+
+# TF code with dynamic block
+resource "aws_security_group" "my-sg" {
+  name   = 'my-aws-security-group'
+  vpc_id = aws_vpc.my-vpc.id
+  dynamic "ingress" { # dynamic block
+    for_each = var.rules { # complex var to iterate over
+      from_port   = ingress.value["port"] # nested content block defines the body of each generated block, using the variable you provided
+      to_port     = ingress.value["port"]
+      protocol    = ingress.value["proto"]
+      cidr_blocks = ingress.value["cidrs"]
+    }
+  }
+}
+
+# TF code to pass in complex var to dynamic block
+variable "rules" {
+  default = [
+    { # 1st item within the complex var type
+      port        = 80
+      proto       = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+    { # 2nd item within the complex var type
+      port   = 22
+      proto = "tcp"
+      cidr_blocks = ["1.2.3.4/32"]
+    }
+  ]
+}
+
+# TF dynamic block code which uses var set above
+resource "aws_security_group" "my-sg" {
+  name   = 'my-aws-security-group'
+  vpc_id = aws_vpc.my-vpc.id
+  dynamic "ingress" { # dynamic block
+    for_each = var.rules { # complex var to iterate over
+      from_port   = ingress.value["port"] # nested content block defines the body of each generated block, using the variable you provided
+      to_port     = ingress.value["port"]
+      protocol    = ingress.value["proto"]
+      cidr_blocks = ingress.value["cidrs"]
+    }
+  }
+}
+```
+
+### Using Terraform Dynamic Blocks and Built-in Functions to Deploy to AWS
+
+```Bash
+# main.tf
+cat <<EOF > main.tf
+provider "aws" {
+  region = "us-east-1"
+}
+
+data "aws_ssm_parameter" "ami_id" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+
+module "vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+
+  name = "my-vpc"
+  cidr = "10.0.0.0/16"
+
+  azs            = ["us-east-1a"]
+  public_subnets = ["10.0.1.0/24"]
+
+
+}
+
+
+resource "aws_security_group" "my-sg" {
+  vpc_id = module.vpc.vpc_id
+  name   = join("_", ["sg", module.vpc.vpc_id])
+  dynamic "ingress" {
+    for_each = var.rules
+    content {
+      from_port   = ingress.value["port"]
+      to_port     = ingress.value["port"]
+      protocol    = ingress.value["proto"]
+      cidr_blocks = ingress.value["cidr_blocks"]
+    }
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "Terraform-Dynamic-SG"
+  }
+}
+
+resource "aws_instance" "my-instance" {
+  ami             = data.aws_ssm_parameter.ami_id.value
+  subnet_id       = module.vpc.public_subnets[0]
+  instance_type   = "t3.micro"
+  security_groups = [aws_security_group.my-sg.id]
+  user_data       = fileexists("script.sh") ? file("script.sh") : null # if file exists we pass in its contents as input to user_data parameter, otherwise it will be set to null
+}
+EOF
+
+# variables.tf - list of parameters for 3 different rules/ingress blocks - Security Group Inbound Rules
+cat <<EOF > variables.tf
+variable "rules" {
+  type = list(object({
+    port        = number
+    proto       = string
+    cidr_blocks = list(string)
+  }))
+  default = [
+    {
+      port        = 80
+      proto       = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+    {
+      port        = 22
+      proto       = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    },
+    {
+      port        = 3689
+      proto       = "tcp"
+      cidr_blocks = ["6.7.8.9/32"]
+    }
+  ]
+
+
+}
+EOF
+
+# script.sh
+cat <<EOF > script.sh
+#!/bin/bash
+sudo yum -y install httpd
+sudo systemctl start httpd && sudo systemctl enable httpd
+EOF
+
+# outputs.tf
+CAT <<EOF > outputs.tf
+output "Web-Server-URL" {
+  description = "Web-Server-URL"
+  value       = join("", ["http://", aws_instance.my-instance.public_ip])
+}
+
+output "Time-Date" {
+  description = "Date/Time of Execution"
+  value       = timestamp()
+}
+
+EOF
+
+terraform version
+terraform fmt
+terraform init
+terraform validate
+terraform plan
+terraform apply --auto-approve
+terraform destroy --auto-approve
+```
+
+### Built-in Functions and Dynamic Blocks Recap
+
+- Structural variable type allows multiple values of various primitive types to be grouped together as a single value
+
+```Bash
+# Structural variable type allows multiple values of various primitive types to be grouped together as a single value
+# Below the variable training has 2 separate types of values within it namely, a string and a number
+
+variable "training" { # structural var with 2 different tupes of values - string & number
+  type = object({
+    name = string
+    age = number
+  })
+  default = {
+    name = "Ryan"
+    age = 36
+  }
+}
+```
+
+- Dynamic blocks supported within the following block types
+  - resource
+  - data
+  - provider
+  - provisioner
+- Dynamic blocks CANNOT be used with lifecycle blocks, as Terraform must process this type of block before it is safe to evaluate expressions; more information - [Dynamic Blocks](https://developer.hashicorp.com/terraform/language/expressions/dynamic-blocks)
+
+- Built-in functions
+  - Terraform comes pre-packaged with a number of built-in functions; users cannot create their own functions like in a programming language
+  - The join function concatenates two strings using specifed delimiter
+
+- A primitive type includes basic data types that aren't comprised of more than one value or of nested data values, such as a numeric value, a sequence of characters, or binary (true/false) logic.
+  - Number
+  - String
+  - Boolean
+
+- Collection variable types allow multiple values of one primitive type variable to be grouped together; a collection type allows multiple values of one other type to be grouped together as a single value; more information - [Terraform Collection Types](https://developer.hashicorp.com/terraform/language/expressions/type-constraints#collection-types)
+
+## Terraform CLI
+
+### Terraform fmt, taint and import
+
+>>>
+
+### Terraform Workspaces
