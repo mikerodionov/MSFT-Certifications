@@ -1074,6 +1074,8 @@ resource "aws_instance" "my-vpc-module" {
 
 ### Interacting with Terraform Module Inputs and Outputs
 
+
+
 >>>
 
 ## 7 Implement and Maintain State
