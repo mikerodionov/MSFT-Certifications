@@ -1562,6 +1562,496 @@ variable "training" { # structural var with 2 different tupes of values - string
 
 ### Terraform fmt, taint and import
 
->>>
+#### Terraform fmt (format)
+
+- Formats TF code for readability
+- Helps in keeping code consistent
+- Safe to run at any time
+- Recommended use cases
+  - Before pushing your code to version control
+  - After upgrading TF or its modules
+  - Any time you've made changes to code
+
+```Bash
+terraform fmt # looks for any .tf files and format them, outputs formatted files list
+```
+
+#### Terraform taint
+
+- Taints a resource, forcing it to be destroyed and recreated
+- Modifies the state file, which triggers the recreation workflow
+- Tainting a resource may cause other resources to be modified
+- Recommended usecases
+  - To cause provisioners to run
+  - Replace misbehaving resources forcefully
+  - To mimic side effects of recreation not modelled by any attributes of the resource
+
+```Bash
+terraform taint RESOURCE_ADDRESS
+```
+
+#### Terraform import
+
+- Maps existing resources to Terraform using an "ID"
+- "ID" is dependent on the underlying vendor, for example to import an AWS EC2 instance you'll need to provide its instance ID
+- Importing the same resource to multipl TF resources can caue unpredictable behavior and is not recommended
+- Recommended usecases
+  - When you need to work with existing resources
+  - When you're not allowed to create new resources
+  - When you're not in control of creation process of infrastructure
+
+```Bash
+terraform import RESOURCE_ADDRESS ID
+```
+
+#### Terraform Configuration Block
+
+- A special configuration block for controlling TF behavior
+- This block only allows constant values, named resources and variables are not allowed
+- Examples include
+  - Configuring backend for storing state files
+  - Specifying a required TF version
+  - Specifying a required TF provider version and its requirements
+  - Enable and test TF experimental features
+  - Passing metadata to providers
+
+```Bash
+# TF configuration  block example
+terraform {
+  required_version = ">=0.13.0"
+  required_providers {
+    aws = ">=3.0.0"
+  }
+}
+```
 
 ### Terraform Workspaces
+
+- The TF workspaces are alternate state files within the same working directory
+- TF starts with a single workspace which is always called **default**, it cannot be deleted
+- Recommended usecases
+  - Test changes using parallel, distinct copy of infrastructure - one wokrspace target DEV env, other PROD
+  - It can be modelled against branches in version control such as Git
+- Workspaces are meant to share resources and to help enable collaboration
+- Access to a workspace name is provided through the ${terraform.workspace} variable
+
+```Bash
+terraform workspace new <WORKSPACE_NAME> # create a workspace
+terraform workspace select <WORKSPACE_NAME> # select a workspace
+```
+
+- TF workspace variable usage example
+
+```Bash
+# TF workspace variable usage example 1
+resource "aws_instance" "example" {
+  count terraform.workspace == "default" ? 5 : 1 # if workspace var = default create 5 instances, if not 1
+  # ... other arguments
+}
+
+# TF workspace variable usage example 2
+resource "aws_s3_bucket" "bucket" {
+  bucket = "asdfgbucket-${terraform.workspace}" # create workspace specific bucket adding workspace name to bucket
+  acl    = "private"
+}
+```
+
+```Bash
+terraform workspace list
+terraform workspace new test
+terraform workspace list
+terraform workspace select default
+```
+
+### Debugging Terraform
+
+#### TF_LOG and TF_LOG_PATH
+
+- TF_LOG is an environment variable for enabling verbose logging in TF; by default, it will send logs to stderr (standard error output)
+- Can be set to the following levels: TRACE, DEBUG, INFO, WARN, ERROR
+- TRACE is the most verbose level of logging and the most reliable one
+- To persist logged output, set the TF_LOG_PATH environment variable
+- Setting logging environment for Terraform on Linux
+
+```
+export TF_LOG=TRACE
+export TF_LOG_PATH=./terraform.log
+```
+
+### Terraform CLI Commands (fmt, taint, and import)
+
+```Bash
+# main.tf
+cat <<EOF > main.tf
+#Create and bootstrap webserver
+resource "aws_instance" "webserver" {
+                ami                         = data.aws_ssm_parameter.webserver-ami.value
+    instance_type               = "t3.micro"
+                        key_name                    = aws_key_pair.webserver-key.key_name
+        associate_public_ip_address = true
+        vpc_security_group_ids      = [aws_security_group.sg.id]
+    subnet_id                   = aws_subnet.subnet.id
+ provisioner "remote-exec" {
+           inline = [
+        "sudo yum -y install httpd && sudo systemctl start httpd",
+                "echo '<h1><center>My Website via Terraform Version 1</center></h1>' > index.html",
+      "sudo mv index.html /var/www/html/"
+    ]
+        connection {
+                type        = "ssh"
+      user        = "ec2-user"
+        private_key = file("~/.ssh/id_rsa")
+                host        = self.public_ip
+    }
+  }
+  tags = {
+    Name = "webserver"
+  }
+}
+EOF
+
+# setup.tf
+cat <<EOF > main.tf
+provider "aws" {
+  region = "us-east-1"
+}
+
+#Create key-pair for logging into EC2 in us-east-1
+resource "aws_key_pair" "webserver-key" {
+  key_name   = "webserver-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+
+#Get Linux AMI ID using SSM Parameter endpoint in us-east-1
+data "aws_ssm_parameter" "webserver-ami" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+#Create VPC in us-east-1
+resource "aws_vpc" "vpc" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "terraform-vpc"
+  }
+
+}
+
+#Create IGW in us-east-1
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
+}
+
+#Get main route table to modify
+data "aws_route_table" "main_route_table" {
+  filter {
+    name   = "association.main"
+    values = ["true"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [aws_vpc.vpc.id]
+  }
+}
+#Create route table in us-east-1
+resource "aws_default_route_table" "internet_route" {
+  default_route_table_id = data.aws_route_table.main_route_table.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+  tags = {
+    Name = "Terraform-RouteTable"
+  }
+}
+
+#Get all available AZ's in VPC for master region
+data "aws_availability_zones" "azs" {
+  state = "available"
+}
+
+#Create subnet # 1 in us-east-1
+resource "aws_subnet" "subnet" {
+  availability_zone = element(data.aws_availability_zones.azs.names, 0)
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.1.0/24"
+}
+
+
+#Create SG for allowing TCP/80 & TCP/22
+resource "aws_security_group" "sg" {
+  name        = "sg"
+  description = "Allow TCP/80 & TCP/22"
+  vpc_id      = aws_vpc.vpc.id
+  ingress {
+    description = "Allow SSH traffic"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "allow traffic from TCP/80"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "Webserver-Public-IP" {
+  value = aws_instance.webserver.public_ip
+}
+[cloud_user@ip-10-0-1-29 section4-hol1]$
+[cloud_user@ip-10-0-1-29 section4-hol1]$ cat setup.tf
+provider "aws" {
+  region = "us-east-1"
+}
+
+#Create key-pair for logging into EC2 in us-east-1
+resource "aws_key_pair" "webserver-key" {
+  key_name   = "webserver-key"
+  public_key = file("~/.ssh/id_rsa.pub")
+}
+
+
+#Get Linux AMI ID using SSM Parameter endpoint in us-east-1
+data "aws_ssm_parameter" "webserver-ami" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+#Create VPC in us-east-1
+resource "aws_vpc" "vpc" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+  tags = {
+    Name = "terraform-vpc"
+  }
+
+}
+
+#Create IGW in us-east-1
+resource "aws_internet_gateway" "igw" {
+  vpc_id = aws_vpc.vpc.id
+}
+
+#Get main route table to modify
+data "aws_route_table" "main_route_table" {
+  filter {
+    name   = "association.main"
+    values = ["true"]
+  }
+  filter {
+    name   = "vpc-id"
+    values = [aws_vpc.vpc.id]
+  }
+}
+#Create route table in us-east-1
+resource "aws_default_route_table" "internet_route" {
+  default_route_table_id = data.aws_route_table.main_route_table.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.igw.id
+  }
+  tags = {
+    Name = "Terraform-RouteTable"
+  }
+}
+
+#Get all available AZ's in VPC for master region
+data "aws_availability_zones" "azs" {
+  state = "available"
+}
+
+#Create subnet # 1 in us-east-1
+resource "aws_subnet" "subnet" {
+  availability_zone = element(data.aws_availability_zones.azs.names, 0)
+  vpc_id            = aws_vpc.vpc.id
+  cidr_block        = "10.0.1.0/24"
+}
+
+
+#Create SG for allowing TCP/80 & TCP/22
+resource "aws_security_group" "sg" {
+  name        = "sg"
+  description = "Allow TCP/80 & TCP/22"
+  vpc_id      = aws_vpc.vpc.id
+  ingress {
+    description = "Allow SSH traffic"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  ingress {
+    description = "allow traffic from TCP/80"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+output "Webserver-Public-IP" {
+  value = aws_instance.webserver.public_ip
+}
+EOF
+
+# Use the 'fmt' Command to Format Any Unformatted Code Before Deployment
+terraform fmt # outputs list of formatted files
+terraform plan
+terraform apply
+curl http://<WEB_SERVER_PUBLIC_IP>
+
+# Use the 'taint' Command to Replace a Resource
+# taint marks resource for deletion so that will be deleted on next TF apply run
+# TF do not track provisioners, so changing TF provisioner code won't trigger its config on the next apply - hence tain can be used to trigger that
+# Edit provisioner definition in main.tf and then taint it
+terraform taint aws_instance.webserver
+# we can see that resource gets tainted by looking into terraform.tfstate file
+# "status": "tainted"
+terraform apply
+curl http://<WEB_SERVER_PUBLIC_IP>
+
+# Use the 'import' Command to Import a Resource
+# Add resource into main.tf to create a placeholder for resource being imported
+cat <<EOF >> main.tf
+
+resource "aws_instance" "webserver2" {}
+EOF
+
+# Impot resource into the state
+terraform import RESOURCE_NAME RESOURCE_ID
+terraform import aws_instance.webserver2 i-0f64cb7605e2be076
+
+# Modify the Imported Resource
+# Append aws_instance.webserver2 resource with params
+#  ami                         = data.aws_ssm_parameter.webserver-ami.value
+#  instance_type               = "t3.micro"
+#  subnet_id                   = aws_subnet.subnet.id
+
+terraform fmt
+terraform apply
+```
+
+### Using Terraform CLI Commands (workspace and state) to Manipulate a Terraform Deployment
+
+```Bash
+# main.tf
+
+cat <<EOF > main.tf
+provider "aws" {
+  region = terraform.workspace == "default" ? "us-east-1" : "us-west-2"
+}
+
+#Get Linux AMI ID using SSM Parameter endpoint in us-east-1
+data "aws_ssm_parameter" "linuxAmi" {
+  name = "/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2"
+}
+
+#Create and bootstrap EC2 in us-east-1
+resource "aws_instance" "ec2-vm" {
+  ami                         = data.aws_ssm_parameter.linuxAmi.value
+  instance_type               = "t3.micro"
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.sg.id]
+  subnet_id                   = aws_subnet.subnet.id
+  tags = {
+    Name = "${terraform.workspace}-ec2"
+  }
+}
+
+EOF
+
+# network.tf
+cat <<EOF > network.tf
+#Create VPC in us-east-1
+resource "aws_vpc" "vpc_master" {
+  cidr_block = "10.0.0.0/16"
+  tags = {
+    Name = "${terraform.workspace}-vpc"
+  }
+
+}
+
+#Get all available AZ's in VPC for master region
+data "aws_availability_zones" "azs" {
+  state = "available"
+}
+
+#Create subnet # 1 in us-east-1
+resource "aws_subnet" "subnet" {
+  availability_zone = element(data.aws_availability_zones.azs.names, 0)
+  vpc_id            = aws_vpc.vpc_master.id
+  cidr_block        = "10.0.1.0/24"
+
+  tags = {
+    Name = "${terraform.workspace}-subnet"
+  }
+}
+
+
+#Create SG for allowing TCP/22 from anywhere, THIS IS FOR TESTING ONLY
+resource "aws_security_group" "sg" {
+  name        = "${terraform.workspace}-sg"
+  description = "Allow TCP/22"
+  vpc_id      = aws_vpc.vpc_master.id
+  ingress {
+    description = "Allow 22 from our public IP"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = {
+    Name = "${terraform.workspace}-securitygroup"
+  }
+}
+EOF
+
+# Create a new workspace, deploy into it, then deploy into default
+terraform workspace list
+terraform workspace new test
+terraform workspace list # test is set as current/default
+terraform init
+terraform state list
+terraform workspace select default
+terraform state list
+
+# Workspaces folder structure
+ls
+# it will show terraform.tfstate & terraform.tfstate.d
+ls terraform.tfstate.d/ # this folder will contain workspace subfolder(s) containing workspace specific terraform state file (terraform.tfstate)
+
+
+# Clean up
+terraform workspace select test
+terraform destroy --auto-approve
+terraform workspace select default
+terraform workspace delete test
+terraform destroy --auto-approve
+```
+
+### Terraform CLI
+
