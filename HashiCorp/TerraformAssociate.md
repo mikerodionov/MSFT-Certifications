@@ -2053,5 +2053,26 @@ terraform workspace delete test
 terraform destroy --auto-approve
 ```
 
-### Terraform CLI
+### Terraform CLI Recap
+
+- TF_LOG=TRACE - maximum logging level for TF; You can set TF_LOG to the TRACE, DEBUG, INFO, WARN, or ERROR log level to change the verbosity of the log. TRACE is the default log level, and it is the most verbose.
+- terraform taint - manually marks a Terraform-managed resource as tainted, forcing it to be destroyed and re-created on the next apply. More info: [Terraform Taint Command](https://developer.hashicorp.com/terraform/cli/commands/taint)
+- When working locally, Terraform always starts off with a single workspace called **default** that cannot be deleted. A Terraform configuration always has a default workspace associated with it. This default workspace always exists regardless of whether or not you create new workspaces locally and it cannot be deleted.
+
+```Bash
+terraform fmt # formats your Terraform code for readability and consistency; terraform fmt command can be safely run at any time, but is especially useful before pushing code to a version control system, as it makes your code look cleaner and more consistent
+
+terraform workspace select <WORKSPACE_NAME> # selects or switches to an existing workspace of your choice, using the name you have provided
+terraform import # brings external, unmanaged resources into your Terraform configuration to be tracked and managed by it; takes an existing resource that is not managed by Terraform and maps it to a resource within Terraform code using an ID
+terraform taint <RESOURCE_TYPE.RESOURCE_NAME> # marks the resource as tainted in the state file and it will be deleted and re-created upon the next terraform apply
+```
+
+## Terraform Cloud and Enterprise Offerings
+
+- Best practices to secure Terraform code and deployments
+  - HashiCorp Sentinel
+  - Terraform Vault Provider
+- Difference between Terraform OSS and Enterpise offerings
+
+### Benefits of Sentinel (Embedded Policy-as-Code Framework)
 
