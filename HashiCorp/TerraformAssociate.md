@@ -2076,3 +2076,177 @@ terraform taint <RESOURCE_TYPE.RESOURCE_NAME> # marks the resource as tainted in
 
 ### Benefits of Sentinel (Embedded Policy-as-Code Framework)
 
+HashiCorp Sentinel - Policy as Code
+
+- Enforces policies on your code
+- Has its own policy language - **Sentinel language**
+- Designed to be approachable by non-programmers
+- Within Terraform Enterprise Sentinel integration runs after terraform plan and before terraform apply
+- Policies have access to the data in the created plan, the state of the resources at the time of the plan, and the configuration at the time of the plan
+
+HashiCorp Sentinel - Benifits
+
+- Sandboxing - guardrails for automation to prevent accidental deployments (e.g. stop dev user to deploy into prod workspace)
+- Codification - easier understanding, better collaboration
+- Version control
+- Testing and automation
+
+HashiCorp Sentinel - Usecases
+
+- For enforcing CIS (Center for Internet Security) security standards across AWS accounts
+- Checking to make sure only specific type of EC2 instances can be created by TF code, e.g. t3.micro
+- Ensure that no AWS security groups allow traffic from all IP addresses on port 22
+
+Sentinel Sample Code for Terraform
+
+```Bash
+# Ensure that all EC2 instances have at least 1 tag
+import "tfplan"
+
+main = rule {
+  all tfplan.resources.aws_instance as _, instances {
+    all instances as _ r {
+      (length(r.applied.tags) else 0) > 0
+    }
+  }
+}
+```
+
+### Best Practice: Terraform Vault Provider for Injecting Secrets Securely
+
+What is HashiCorp Vault?
+
+- Secret Management Software
+- **Dynamically provisions credentials and rotates them**
+- **Encrypts data in transit and rest** and provides fine-grained access to secrets using ACLs; secrets examples: usernames and passwords, DB credentials, API tokens, TLS certificates
+- Helps preventing credentials sprawl - credentials enging up in plain text files, DBs, config files and so on which creates security risk/increases attack surface
+
+Terraform Vault Provider
+
+Injectig Vault Provider Secrets into TF Workflow:
+
+1) Vault admin stores long-lived credentials in Vault, configures permissions for temporary credentials when generated
+2) Terraform operator uses vault provider within TF code and runs terraform apply command
+3) TF reaches out to Vault for temporary credentials
+4) Vault returns temporary, short lived credentials
+5) TF deploys using the credentials returned by Vault and, after a configurable amount of time, those temp credentials are deleted by vault
+
+HashiCorp Vault Benefits
+
+- Developers don't need to manage long-lived credentials
+- Inject secrets into your TF deployment at runtime
+- Fine-grained ACLs for access to temporary credentials
+
+### Benefits of Terraform Registry and Terraform Cloud Workspaces
+
+#### Terraform Registry
+
+- A repository of publicly available Terraform providers and modules - first/by default look up location for providers and modules
+- 3rd parties can publsh and share modules too
+- https://registry.terraform.io
+- Possibility to collaborate with other contributors to make changes to **providers** and **modules**
+- Providers tiers: ifficial, verified, community
+- Can be directly referenced in TF code
+
+#### Terraform Cloud Workspaces
+
+- Workspaces directories hosted in TF Cloud
+- Stores old versions of state files by default
+- Maintains a record of all execution activity
+- All TF commands executed on managed TF Cloud VMs
+- Deployments can be triggered via TF workspaces API, version control systm triggers (GitHub actions), TF Cloud UI
+
+### Differentiating Between Terraform OSS and Terraform Cloud Workspaces
+
+Terraform OSS Workspaces
+
+- Stores alternate state files in the same working directory
+
+Terraform OSS Workspaces vs. Terraform Cloud Workspaces - compare and contrast
+
+| Component               | Workspace                                                   | Cloud Workspace                                                           |
+|-------------------------|-------------------------------------------------------------|---------------------------------------------------------------------------|
+| Terraform Configuration | On disk                                                     | In linked version control repository or periodically uploaded via API/CLI |
+| Variable Values         | As .tfvars files, as CLI arguments, or in shell environment | In wokrspace in TF cloud                                                  |
+| State                   | On disk or in remote backend                                | In workspace in TF cloud                                                  |
+| Credentials and Secrets | In shell environment or entered at prompts                  | In workspace in TF cloud, stored as sensitive variables                   |
+
+### Benefirs of Terraform Cloud - Summary
+
+- Collaboration oriented TF workflow
+  - Remote TF execution
+  - Workspace based org model
+  - Version control integration (GitHub, Bitbucket etc.)
+  - Remote State management and CLI integration
+  - Private TF module registry
+  - Cost estimation and Sentinel features (policies enforcement)
+
+### Terraform Cloud and Enterprise Summary
+
+Security Best Practices
+
+- Best practices for securing secrets and deployments
+  - Sentinel - enforce secure deployments via policies
+  - Vault Provider - store and inject secrets securely during Terraform deployments
+
+Workspaces
+
+- Terraform OSS workspaces VS Terraform Cloud workspaces
+  - Terraform OSS: workspaces generate and track different state files against the same TF code in a directory, hosted locally on your systems
+  - Terraform Cloud: workspaces are hosted in the cloud and track configuration, variables, state, and secrets and can be interacted with programmatically
+
+Terraform Cloud
+
+- General features of TF Cloud and Enterprise offerings
+  - Collaboration (API-based workflows, version control, trigger-based deployments)
+  - Sentinel integration
+  - Cost estimation, shared workspaces, access-based controls
+
+### Terraform Cloud and Enterprise Recap
+
+- Terraform public registry - a repository of publicly available Terraform providers and modules; the Terraform public registry links end users with the providers that power all of Terraform’s resource types and/or helps them find modules for quickly deploying common infrastructure configurations. More information: [Terraform Registry](https://registry.terraform.io/)
+- HashiCorp Sentinel - is a policy-as-code framework that enforces adherence to policies within your Terraform code which helps make deployments more secure and act as protection against accidental deployments; the policies inherent to the Sentinel framework ensure that dangerous or malicious Terraform code is blocked before it gets executed or applied via the terraform apply command.
+- HashiCorp Vault - a centralized secrets management software which can store your long-lived credentials in a secure way and dynamically inject short-lived, temporary keys to Terraform at deployment.
+- Tertaform registry hosts
+  - Publicly available Terraform providers
+  - Publicly available modules
+- Terraform Vault provider
+  - Provides short-lived, temporary credentials for users with only the permissions needed for infrastructure creation
+  - A secure place to manage access to the secrets for your Terraform configurations, in addition to integrating with other popular cloud vendors
+  - Allows you to store sensitive data securely that can be used for your Terraform configurations
+- Vault allows you to provide short-lived, temp credentials that allow for users to have only the permissions they need to deploy the infrastructure. The credentials will rotate according to the rotation schedule you define. This allows you to not have to worry about keeping up with long-lived credentials.
+- Vault allows you to store any sensitive data securely and can be used with all your configurations. It also **integrates with cloud vendors like AWS, Azure, and GCP to allow for easy configuration across all your cloud vendors**.
+- Vault allows you to store any sensitive data securely and can be used with all your configurations. This is especially helpful when your infrastructure configurations get large and complicated.
+- Terraform Cloud features/benefits
+  - Cloud cost estimation
+  - Private Terraform module registry
+  - Remote Terraform execution
+  - Remote state management
+  - Integration with repositories like GitHub and BitBucket, but **it does not have its own version control built in**
+- Terraform Cloud - includes easy access to shared state and secret data, access controls for approving changes to infrastructure, detailed policy controls for governing the contents of Terraform configurations, and more.
+  - Helps teams using TF together
+  - Allows for easy access to shared state and secret data
+
+## Other Resources
+
+- [Exam Study Guide](https://developer.hashicorp.com/terraform/tutorials/certification-003/associate-study-003)
+- [Exam Review Guide](https://developer.hashicorp.com/terraform/tutorials/certification-003/associate-review-003)
+- [Exam Sample Questions](https://developer.hashicorp.com/terraform/tutorials/certification-003/associate-questions)
+
+Required knowledge for exam
+
+- Basic understanding of public cloud (at least one major provider)
+- Know security best practices (Sentinel and Vault provider)
+- Know TF workflow very well - Write > Plan > Apply
+- Know when to use TF commands
+  - init, plan, apply, state, fmt, validate
+- Solid knoledge of TF state mechanism
+- Knowledge of HCL to be able to interpret snippets of code
+- Know differences between TF OSS and Enterprise offerings
+  - Enterprise = Sentinel, cost estimation, storage of state in TF cloud by default
+  - Different pay tiers
+  - Terraform OSS workspaces VS TF cloud workspaces; oss stores workspaces as subfolders of terraform.tfstate.d folder
+- Hands-on experience
+- Exam based on 0.12+ version of TF
+- Exam has 57-60 questions, questions can be flagged from review
+- 
