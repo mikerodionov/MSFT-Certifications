@@ -10,9 +10,12 @@ Recommended certifications/knowledge:
   - Azure Fundamentals
   - Azure Administrator
   - Azure Solutions Architect
+- Kubernetes Associate Leve
+  - KCNA
+  - KCNS
 - Kubernetes Trilogy
-  - CKAD
   - CKA
+  - CKAD
   - CKSS
 
 2
