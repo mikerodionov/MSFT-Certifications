@@ -85,4 +85,4 @@ Git is distributed, which means that a project's complete history is stored both
 - Remote
 - Commands, subcommands, and options
 
-### GIT CLI
+### Git CLI
