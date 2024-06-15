@@ -148,6 +148,60 @@ git help everyday
 
 ### What is GitHub?
 
+GitHub is a cloud-based platform that uses Git, a distributed version control system, at its core. The GitHub platform simplifies the process of collaborating on projects and provides a website, command-line tools, and overall flow that allows developers and users to work together.
+
+GitHub provides an AI powered developer platform to build, scale, and deliver secure software.
+
+Core pillars of the GitHub Enterprise platform:
+
+- AI - enhancing collaboration through AI-powered pull requests and issues, productivity through Copilot, and security by automating security checks faster
+- Collaboration - Repositories, Issues, Pull Requests, and other tools help to enable developers, project managers, operation leaders, and others at the same company to work faster together, cut down approval times, and ship more quickly.
+- Productivity - accelerated with automation, built-in CI/CD tools directly integrated into the workflow
+- Security - our code remains private within your organization, and at the same time you are able to take advantage of security overview and **Dependabot**
+- Scale
+
+#### Inroduction to repos
+
+A repository contains all of your project's files and each file's revision history. You can use repositories to manage your work, track changes, store revision history and work with others.
+
+You can create a new repository on your personal account or any organization where you have sufficient permissions.
+
+Repository visibility:
+- Public - accessible to everyone on the internet
+- Private - only accessible to you, people you explicitly share access with, and, for organization repositories, certain organization members
+
+To add a file to a repository you must first have minimum Write access within the repository you want to add a file.
+
+#### Gists
+
+Gists are a simplified way to share code snippets with others.
+
+Every gist is a Git repository, which you can fork and clone and can be either public or secret.
+
+Public gists are displayed publicly where people can browse new ones as they’re created. Public gists are also searchable.
+
+Conversely, secret gists are not searchable, but they aren’t entirely private. If you send the URL of a secret gist to a friend, they'll be able to see it.
+
+#### Wikis
+
+Every repository on GitHub.com comes equipped with a section for hosting documentation, called a wiki.
+
+You can use your repository's wiki to share long-form content about your project, such as how to use it, how you designed it, or its core principles.
+
+While a README file quickly tells what your project can do, you can use a wiki to provide additional documentation.
+
+If your repository is private only people who have at least read access to your repository will have access to your wiki.
+
+### Components of the GitHub flow
+
+#### Branches
+
+#### Commits
+
+#### PRs
+
+#### The GH Flow
+
 ## Exam Recap
 
 ### Domain 1 - Introduction to Git and GitHub
@@ -260,7 +314,9 @@ GitHub repository insights and the respective repository's graphs give you infor
 
 To use Repository Insights user neeeds write or admin access to a project. The only users who can use the Insights feature for Projects are those with write or admin access to the specific project.
 
-GH Code scanning - automatically detects security vulnerabilities and coding errors in new or modified code. Potential problems are highlighted, with detailed information, allowing you to fix the code before it's merged into your default branch.  Code scanning is available for all public repositories on GitHub.com. Code scanning is also available for private repositories owned by organizations that use GitHub Enterprise Cloud and have a license for GitHub Advanced Security.
+GH Code scanning - automatically detects security vulnerabilities and coding errors in new or modified code. Potential problems are highlighted, with detailed information, allowing you to fix the code before it's merged into your default branch.  Code scanning is available for all public repositories on GitHub.com. **Code scanning is also available for private repositories owned by organizations that use GitHub Enterprise Cloud and have a license for GitHub Advanced Security**.
+
+Code scanning for private repos is only available with GitHub Advanced Security License.
 
 By default members of GH org can create repositories and project boards.
 
@@ -274,16 +330,26 @@ You can disable GitHub Actions for your repository altogether. When you disable 
 
 By default, when you create a new repository in your personal account, workflows are not allowed to create or approve pull requests. If you create a new repository in an organization, the setting is inherited from what is configured in the organization settings.
 
-Personal repo permission levels:
+Personal repo permission levels - ONLY TWO:
 - repo owner
-- collaborator
-- viewers
+- collaborators
 
 Default repo visibility options for GH Enterprise:
 - Private
 - Public
 - Internal
 
+Within GitHub Enterprise you can restrict who has access to a repository by choosing a repository's visibility: public, internal, or private.
+
+GitHub Enterprise Cloud authentication options use a centralized identity provider (IdP) to control and secure access to organization resources:
+- SAML single sign-on (SSO)
+- Enterprise Managed Users
+
+Both **GitHub SAML SSO** and **Enterprise Managed Users** can leverage an IdP for authentication. If you configure SAML SSO, members of your organization will continue to sign into their personal accounts on GitHub.com. When a member accesses most resources within your organization, GitHub redirects the member to your IdP to authenticate. With Enterprise Managed Users, you manage the lifecycle and authentication of your users on GitHub.com from an external identity management system, or IdP.
+
+Pinned repos -  give users easy access to important or frequently used repositories within organization.
+
+You can give users easy access to important or frequently used repositories, by choosing up to six repositories for public users and six repositories for members of the organization. Once you pin repositories to your organization profile, the "Pinned" section is shown above the "Repositories" section of the profile page.
 
 ### Domain 7 - Benefits of the GitHub Community
 
