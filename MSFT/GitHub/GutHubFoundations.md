@@ -147,3 +147,160 @@ git help everyday
 ## Introduction to GitHub
 
 ### What is GitHub?
+
+## Exam Recap
+
+### Domain 1 - Introduction to Git and GitHub
+
+GitHub user profile features - metadata, achievements, profile readme, repositories, pinned repositories, and stars.
+
+### Domain 2 - Working with GitHub Repos
+
+GitHub Repository Template - alolows creating similar projects with a specific directory structure, branches, and files. You can make an existing repository a template, so you and others can generate new repositories with the same directory structure, branches, and files.
+
+Primary benefits of adding README filkee to a GH repo:
+- document what the project does and why the reader might find it useful
+- communicate who maintains and contributes to the project
+- tell users where they can get help with your project
+
+Adding a README file to a project repository offers project information and guiding information about the project. A README file is a valuable resource for explaining a repository's purpose, setup, and usage, making it easier for contributors to understand and engage with the project.
+
+.gitignore file - used to exclude specific files and directories from being committed to version control.
+
+### Domain 3 - Collaboration Features
+
+GH Gists -  allow you to share code snippets or files without granting access to the entire repository, making it ideal for review and collaboration, for example when you don't want to give a user(s) access to your private repo.
+
+To create a PR to a repo to which you don't have write access you do a repo fork and create branch in a forked repo, then submit a PR.
+
+To indicate whether iussue is being worked on - link a PR or branch to it to show that the fix is in progress.
+When you merge a linked pull request into the default branch of a repository, its linked issue is automatically closed.
+
+PR review actions:
+- request specific changes directly within the code
+- comment on specific lines of code with detailed feedback
+- provide suggestions for improvements before merging
+
+"Create a branch" option on the issue page allows to quickly create a branch associated with the issue.
+
+GH iunbox filter queries
+- reason:mentinon
+- is:unread
+
+### Domain 4 - Modern Development
+
+GH Codespace - uses a dev container running on a VM managed by GH.
+
+Development containers, or dev containers, are Docker containers that are specifically configured to provide a fully featured development environment. Whenever you work in a codespace, you are using a dev container on a virtual machine.
+
+Codespace customizations:
+- codespace display name to distinguish between multiple codespaces
+- machine type to have apropriate resources
+- shell in a codespace (bash, zsh, fish are installed in default def container image)
+- default region where codespace will be created
+
+Deep link - allows to open a pre-configured Codespace in the browser, it takes people straight to a page for creating a codespace, with preconfigured options.
+
+Source locations for re-usable GH WF:
+- a published Docker container image on Docker Hub
+- any public repo
+- the same repo foras your wokrflow file
+
+A reusable workflow can be used by another workflow if any of the following is true:
+- Both workflows are in the same repository.
+- The called workflow is stored in a public repository, and your organization allows you to use public reusable workflows.
+- The called workflow is stored in a private repository and the settings for that repository allow it to be accessed.
+
+GitHub Copilot can automatically generate and complete entire code files based on input from user.
+
+GitHub Copilot is an AI pair programmer that offers autocomplete-style suggestions as you code. You can receive suggestions from GitHub Copilot by writing the code you want to use or by writing a natural language comment describing what you want the code to do. GitHub Copilot analyzes the context in the file you are editing, as well as related files, and offers suggestions from within your text editor.
+
+To offer relevant suggestions GH copilot analyzes the context in the current file and related files.
+
+GitHub Copilot analyzes the context in the file you are editing, as well as related files, and offers suggestions from within your text editor. GitHub Copilot is powered by a generative AI model developed by GitHub, OpenAI, and Microsoft.
+
+Order of operations for GH Actions when a PR is opened:
+Event > Workflow > Job > Steps > Action 
+
+You can configure a GitHub Actions workflow to be triggered when an event occurs in your repository, such as a pull request being opened or an issue being created. Your workflow contains one or more jobs which can run in sequential order or in parallel. Each job will run inside its own virtual machine runner, or inside a container, and has one or more steps that either run a script that you define or run an action, which is a reusable extension that can simplify your workflow.
+
+### Domain 5 - Project Management
+
+GitHub Projectrs vs GitHuub Projects Classic - Projects offers more customizable options for project boards and workflows compared to Projects Classic. Projects allows users to adjust the experience to their specific needs making it better for tracking progress and organizing issues and pull requests.
+
+Roadmap layout in GitHub projects - a configurable timespan to track your issues, pull requests, and draft issues on a timeline.
+
+To use Repository Insights user neeeds write or admin access to a project.
+
+GitHub Projects Labels - provide a way to prioritize and categorize issues, making it easier to track and manage tasks on the project board.
+
+Programmatic management of GH Project
+- Graph QL API to manage the project
+- GitHub CLI to create and manage issues and PRs
+
+Built in GH projects metadata:
+- milestones 0 track progress on groups of issues or pull requests in a repository
+- labels - sed to classify issues, pull requests, and discussions
+- assignees
+
+Timestamp field can be added but it is not the one of the built-in metadata that GitHub provides.
+
+### Domain 6 - Privacy, Security, and Administration
+
+If org enables 2FA requirement accounts which are not elect to enable 2FA got deleted from GH org. It includes members, outside collaborators, and billing managers (including bot accounts).
+GitHub accounts without 2FA will be removed immediatly from any organization that enables two-factor authentication.
+
+2FA cannot be required for repo viewers.
+
+Organization owners can require organization members, outside collaborators, and billing managers to enable two-factor authentication for their personal accounts, making it harder for malicious actors to access an organization's repositories and settings.  Repository viewers who have read-only access to repositories, are not subject to the organization-wide two-factor authentication requirement.
+
+Repository Insights - allows you to see repository insights graph activity and contributor engagement of your project.
+
+GitHub repository insights and the respective repository's graphs give you information on traffic, projects that depend on the repository, contributors and commits to the repository, and a repository's forks and network. You can use this data to get a better understanding of who's using your repository and why they're using it.
+
+To use Repository Insights user neeeds write or admin access to a project. The only users who can use the Insights feature for Projects are those with write or admin access to the specific project.
+
+GH Code scanning - automatically detects security vulnerabilities and coding errors in new or modified code. Potential problems are highlighted, with detailed information, allowing you to fix the code before it's merged into your default branch.  Code scanning is available for all public repositories on GitHub.com. Code scanning is also available for private repositories owned by organizations that use GitHub Enterprise Cloud and have a license for GitHub Advanced Security.
+
+By default members of GH org can create repositories and project boards.
+
+A CODEOWNERS file uses a pattern that follows most of the same rules used in gitignore files. The pattern is followed by one or more GitHub usernames or team names using the standard @username or @org/team-name format.
+
+Disabling GH Actions on repo = no workflows run on the repository
+
+By default, GitHub Actions is enabled on all repositories and organizations. You can choose to disable GitHub Actions or limit it to actions and reusable workflows in your organization.
+
+You can disable GitHub Actions for your repository altogether. When you disable GitHub Actions, no workflows run in your repository.  Alternatively, you can enable GitHub Actions in your repository but limit the actions and reusable workflows a workflow can run.
+
+By default, when you create a new repository in your personal account, workflows are not allowed to create or approve pull requests. If you create a new repository in an organization, the setting is inherited from what is configured in the organization settings.
+
+Personal repo permission levels:
+- repo owner
+- collaborator
+- viewers
+
+Default repo visibility options for GH Enterprise:
+- Private
+- Public
+- Internal
+
+
+### Domain 7 - Benefits of the GitHub Community
+
+Following user on GH - allows you to see user's updates and activities on your personal dashboard.
+
+Star repo/follow user - allows you to see updates on their activities on your personal dashboard.
+
+Fork repo - create a private copy of a repo for your personal use.
+
+GH Issue Template - used to streamline the creation of consistent issues and enhance collaboration.
+
+GH Market Place -  allows developers to share GitHub Actions and Apps with the GitHub community (free and paid).
+
+GH Tiopics to classify repo:
+- language
+- subject area
+- repo's intended purpose
+
+GitHub topics all you to explore repositories in a particular subject area, find projects to contribute to, and discover new solutions to a specific problem. 
+Helpful topics to classify a repository include the repository's intended purpose, subject area, community, or language. Additionally, GitHub analyzes public repository content and generates suggested topics that repository admins can accept or reject. Private repository content is not analyzed and does not receive topic suggestions.
