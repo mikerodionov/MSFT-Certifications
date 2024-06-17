@@ -221,6 +221,13 @@ Adding a README file to a project repository offers project information and guid
 
 .gitignore file - used to exclude specific files and directories from being committed to version control.
 
+To add a new file to his GitHub repository through the command line:
+
+```Bash
+git add project.txt
+git commit -m "add new project file"
+git push
+```
 ### Domain 3 - Collaboration Features
 
 GH Gists -  allow you to share code snippets or files without granting access to the entire repository, making it ideal for review and collaboration, for example when you don't want to give a user(s) access to your private repo.
@@ -241,7 +248,13 @@ GH iunbox filter queries
 - reason:mentinon
 - is:unread
 
+#### Gists
+
+Gists are actually Git repositories, meaning you can fork or clone any gist, even if you aren't the original author. You can also view a gist's full commit history, including diffs.
+
 ### Domain 4 - Modern Development
+
+#### Codespaces
 
 GH Codespace - uses a dev container running on a VM managed by GH.
 
@@ -254,6 +267,12 @@ Codespace customizations:
 - default region where codespace will be created
 
 Deep link - allows to open a pre-configured Codespace in the browser, it takes people straight to a page for creating a codespace, with preconfigured options.
+
+To reduce costs asssociated with GH Codespaces usage - reduce the default retention period for automatic deletion of codespaces
+
+Inactive codespaces are automatically deleted. You can choose how long your stopped codespaces are retained, up to a maximum of 30 days. However, because GitHub Codespaces incurs **storage charges**, you may prefer to reduce the retention period by changing your default period in your personal settings for GitHub Codespaces.
+
+#### GH Actions
 
 Source locations for re-usable GH WF:
 - a published Docker container image on Docker Hub
@@ -299,6 +318,16 @@ Built in GH projects metadata:
 
 Timestamp field can be added but it is not the one of the built-in metadata that GitHub provides.
 
+GH Projects charts types:
+- Current chart - allows to visualize your project items, for example, you can create charts to show how many items are assigned to each individual or how many issues are assigned to each upcoming iteration
+- Historical chart - allows to track changes to the state of your project items, not existing items assigned to users
+
+To assign users issues and PRs - write permissions
+
+You can assign multiple people to each issue or pull request, including yourself, anyone who has commented on the issue or pull request, anyone with write permissions to the repository, and organization members with read permissions to the repository.
+
+**Anyone with write access to a repository can assign issues and pull requests.**
+
 ### Domain 6 - Privacy, Security, and Administration
 
 If org enables 2FA requirement accounts which are not elect to enable 2FA got deleted from GH org. It includes members, outside collaborators, and billing managers (including bot accounts).
@@ -320,7 +349,7 @@ Code scanning for private repos is only available with GitHub Advanced Security 
 
 By default members of GH org can create repositories and project boards.
 
-A CODEOWNERS file uses a pattern that follows most of the same rules used in gitignore files. The pattern is followed by one or more GitHub usernames or team names using the standard @username or @org/team-name format.
+A **CODEOWNERS file** uses a pattern that follows most of the same rules used in gitignore files. The pattern is followed by one or more GitHub usernames or team names using the standard @username or @org/team-name format.
 
 Disabling GH Actions on repo = no workflows run on the repository
 
@@ -351,6 +380,32 @@ Pinned repos -  give users easy access to important or frequently used repositor
 
 You can give users easy access to important or frequently used repositories, by choosing up to six repositories for public users and six repositories for members of the organization. Once you pin repositories to your organization profile, the "Pinned" section is shown above the "Repositories" section of the profile page.
 
+GitHub Advanced Security (GHAS) license features:
+- dependency review- show the full impact of changes to dependencies and see details of any vulnerable versions before you merge a pull request
+- code scanning - search for potential security vulnerabilities and coding errors in your code
+- secret scanning - detect secrets, for example keys and tokens, that have been checked into private repositories
+
+Dependency Graph and Dependabot alerts are included in all plans.
+
+Secret scanning detects secrets, for example keys and tokens, that have been checked into private repositories. Secret scanning alerts for users and secret scanning alerts for partners are available and free of charge for public repositories on GitHub.com. If push protection is enabled, also detects secrets when they are pushed to your repository.
+
+GitHub has many features that help you improve and maintain the quality of your code. Some of these are included in all plans, such as Dependency graph and Dependabot alerts are included in all plans. Other security features require a **GitHub Advanced Security (GHAS) license** to run on repositories apart from public repositories on GitHub.com.
+
+An organization owner who provides different levels of access to private repositories owned by his organization to:
+- organization members
+- ouside collaborators
+- teams
+via roles and permissions.
+
+GitHub organization news feed - allows to keep up with the recent activity on repositories owned by organization
+
+An organization's news feed shows other people's activity on repositories owned by that organization. You can use your organization's news feed to see when someone opens, closes, or merges an issue or pull request, creates or deletes a branch, creates a tag or release, comments on an open issue, pull request, or commit, or pushes new commits to GitHub.
+
+Billing Managers can
+- Upgrade or downgrade the account
+- View payment history
+- Update payment methods
+
 ### Domain 7 - Benefits of the GitHub Community
 
 Following user on GH - allows you to see user's updates and activities on your personal dashboard.
@@ -370,3 +425,18 @@ GH Tiopics to classify repo:
 
 GitHub topics all you to explore repositories in a particular subject area, find projects to contribute to, and discover new solutions to a specific problem. 
 Helpful topics to classify a repository include the repository's intended purpose, subject area, community, or language. Additionally, GitHub analyzes public repository content and generates suggested topics that repository admins can accept or reject. Private repository content is not analyzed and does not receive topic suggestions.
+
+A fork is a new repository that shares code and visibility settings with the original upstream code repository. Forks are often used to iterate on ideas or changes before they are proposed back to the upstream repository, such as in open source projects or when a user does not have write access to the upstream repository.  Developers can use forks to propose changes related to fixing a bug without impacting the original upstream repository.
+
+If you fork a repository and the original repository is updated, **your fork won't automatically receive those updates**. Maintainers must manually sync their forks with the original repository by creating pull requests or using Git commands to fetch and merge changes.
+
+When you follow organizations on GitHub, you'll see their public activity on your personal dashboard:
+- new discussions
+- sponsorships
+- repositories
+
+**Following an organization on GitHub does not impact notifications related to changes made to the organization's profile settings**. Profile settings for organizations and individual user profiles are separate entities on GitHub. Following an organization primarily affects the visibility of public repository activities associated with that organization on your personal dashboard.
+
+#### PR Templates
+
+To add PR template to repo create the pull request template visible in the repository's root directory with the name pull_request_template.md
