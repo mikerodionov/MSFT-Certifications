@@ -154,11 +154,11 @@ GitHub provides an AI powered developer platform to build, scale, and deliver se
 
 Core pillars of the GitHub Enterprise platform:
 
-- AI - enhancing collaboration through AI-powered pull requests and issues, productivity through Copilot, and security by automating security checks faster
-- Collaboration - Repositories, Issues, Pull Requests, and other tools help to enable developers, project managers, operation leaders, and others at the same company to work faster together, cut down approval times, and ship more quickly.
-- Productivity - accelerated with automation, built-in CI/CD tools directly integrated into the workflow
-- Security - our code remains private within your organization, and at the same time you are able to take advantage of security overview and **Dependabot**
-- Scale
+- **AI** - enhancing collaboration through AI-powered pull requests and issues, productivity through Copilot, and security by automating security checks faster
+- **Collaboration** - Repositories, Issues, Pull Requests, and other tools help to enable developers, project managers, operation leaders, and others at the same company to work faster together, cut down approval times, and ship more quickly.
+- **Productivity** - accelerated with automation, built-in CI/CD tools directly integrated into the workflow
+- **Security** - your code remains private within your organization, and at the same time you are able to take advantage of security overview and **Dependabot**
+- **Scale**
 
 #### Inroduction to repos
 
@@ -178,9 +178,9 @@ Gists are a simplified way to share code snippets with others.
 
 Every gist is a Git repository, which you can fork and clone and can be either public or secret.
 
-Public gists are displayed publicly where people can browse new ones as they’re created. Public gists are also searchable.
+Public gists are displayed publicly where people can browse new ones as they're created. Public gists are also searchable.
 
-Conversely, secret gists are not searchable, but they aren’t entirely private. If you send the URL of a secret gist to a friend, they'll be able to see it.
+Conversely, secret gists are not searchable, but they aren't entirely private. If you send the URL of a secret gist to a friend, they'll be able to see it.
 
 #### Wikis
 
@@ -194,13 +194,62 @@ If your repository is private only people who have at least read access to your 
 
 ### Components of the GitHub flow
 
+- Branches
+- Commits
+- PRs
+- The GH flow
+
 #### Branches
+
+Branches allow you to make changes without affecting the entire project we're working on.
+
+Branch is a safe place to experiment with new features or fixes. If you make a mistake, you can revert your changes or push more changes to fix the mistake. Your changes won't update on the default branch until you merge your branch.
+
+```bash
+# Create new branch and check it out
+git checkout -b newBranchName
+```
 
 #### Commits
 
+To add a new file into the repository, you need to push a commit.
+
+A commit is a change to one or more files on a branch. Every time a commit is created, it's assigned a unique ID and tracked, along with the time and contributor. Commits provide a clear audit trail for anyone reviewing the history of a file or linked item, such as an issue or pull request.
+
+Within a git repository, a file can exist in several valid states as it goes through the version control process. The primary states for a file in a Git repository are:
+
+- Untracked - An initial state of a file when it isn't yet part of the Git repository. Git is unaware of its existence.
+- Tracked - A tracked file is one that Git is actively monitoring. It can be in one of the following substates:
+    - Unmodified - The file is tracked, but it hasn't been modified since the last commit.
+    - Modified - The file has been changed since the last commit, but these changes aren't yet staged for the next commit.
+    - Staged - The file has been modified, and the changes have been added to the staging area (also known as the index). These changes are ready to be committed.
+    - Committed - the file is in the repository's database. It represents the latest committed version of the file.
+
 #### PRs
 
+A pull request is the mechanism used to signal that the commits from one branch are ready to be merged into another branch.
+
+The team member submitting the pull request requests one or more reviewers to verify the code and approve the merge. These reviewers have the opportunity to comment on changes, add their own, or use the pull request itself for further discussion.
+
+Once the changes have been approved (if approval is required), the pull request's source branch (the compare branch) is merged into the base branch.
+
 #### The GH Flow
+
+![image](Images/GH_flow.png)
+
+GitHub flow - a lightweight workflow that allows for safe experimentation. You can test new ideas and collaboration with your team by using branching, pull requests, and merging.
+
+GitHub flow:
+1) Create branch
+2) Make your changes
+3) Create PR and ask collaborators for feedback
+4) Review and implement feedback
+5) Get PR approved and merged
+6) Delete your branch
+
+### GitHub is a collaborative platform
+
+>>>
 
 ## Exam Recap
 
