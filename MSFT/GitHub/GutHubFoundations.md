@@ -367,6 +367,19 @@ Built in GH projects metadata:
 
 Timestamp field can be added but it is not the one of the built-in metadata that GitHub provides.
 
+Default labels provided for every for new repo in GitHub Projects
+- Bug - used to indicate an unexpected problem or unintended behaviour
+- Documentation
+- Duplicate - used to indicate similar issues, PRs, or discussions
+- Enchancement
+- Goof first issue - indicates a good issue for first-time contributors
+- Help Wanted - used to indicate that a maintainer wants help on an issue or PR
+- Invalid
+- Question
+- Wontfix
+
+[About default labels](https://docs.github.com/en/issues/using-labels-and-milestones-to-track-work/managing-labels)
+
 GH Projects charts types:
 - Current chart - allows to visualize your project items, for example, you can create charts to show how many items are assigned to each individual or how many issues are assigned to each upcoming iteration
 - Historical chart - allows to track changes to the state of your project items, not existing items assigned to users
@@ -455,6 +468,8 @@ Billing Managers can
 - View payment history
 - Update payment methods
 
+To determine if a person has a conflicting set of permissions on a code repo repo admin can navigate to the manage access under repository settings and look for **the mixed roles warning message**.
+
 ### Domain 7 - Benefits of the GitHub Community
 
 Following user on GH - allows you to see user's updates and activities on your personal dashboard.
@@ -474,6 +489,21 @@ GH Tiopics to classify repo:
 
 GitHub topics all you to explore repositories in a particular subject area, find projects to contribute to, and discover new solutions to a specific problem. 
 Helpful topics to classify a repository include the repository's intended purpose, subject area, community, or language. Additionally, GitHub analyzes public repository content and generates suggested topics that repository admins can accept or reject. Private repository content is not analyzed and does not receive topic suggestions.
+
+Reasons to adopt **InnerSource** development methodology:
+- Foster open collaboration and encourage more contributions to company development initiatives
+- To apply the principles and the methodologies commonly associated with open source projects to internal software development processes
+- Help organization's teams discover, customize, and reuse existing internal projects
+
+**InnerSource** is an approach to software development that *adopts open-source development practices within an organization's boundaries*. The concept involves applying the principles and methodologies commonly associated with open-source projects to internal software development processes. Benefits of InnerSource include:
+
+- Making it easy to find and reuse code on a broad scale, avoiding wasted resources and duplication
+- Driving rapid development, regardless of company size
+- Reducing silos and simplifying collaboration throughout the entire organization—inside and between teams and functions, as well as across teams and business lines
+- Increasing clarity between engineers and management, as well as anyone else who’s interested
+- Creating a culture of openness, a precursor to open-source participation
+- Reinforcing the pride, growth, and job satisfaction felt by team members who help wherever there is a need
+
 
 A fork is a new repository that shares code and visibility settings with the original upstream code repository. Forks are often used to iterate on ideas or changes before they are proposed back to the upstream repository, such as in open source projects or when a user does not have write access to the upstream repository.  Developers can use forks to propose changes related to fixing a bug without impacting the original upstream repository.
 
