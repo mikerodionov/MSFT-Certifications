@@ -301,6 +301,11 @@ GH iunbox filter queries
 
 Gists are actually Git repositories, meaning you can fork or clone any gist, even if you aren't the original author. You can also view a gist's full commit history, including diffs.
 
+#### Permalinks for code lines
+
+You can create a permanent link to a specific line or range of lines of code which will further enable you to render these lines of code as a code snipped in a comment.
+You can create a permanent link to a specific line or range of lines of code in a specific version of a file or pull request. This type of permanent link will render as a code snippet only in the original repository. In other repositories, the permalink code snippet will render as a URL.
+
 ### Domain 4 - Modern Development
 
 #### Codespaces
@@ -469,6 +474,10 @@ Billing Managers can
 - Update payment methods
 
 To determine if a person has a conflicting set of permissions on a code repo repo admin can navigate to the manage access under repository settings and look for **the mixed roles warning message**.
+The repository administrator can review the list of collaborators and their assigned permissions in the repository settings to identify any conflicting access levels.  If a person has been given conflicting access, you'll see the warning "Mixed roles" next to the person with the conflicting access. To see the source of the conflicting access, hover over the warning icon or click **Mixed roles**.
+
+Further reading [Managing teams and people with access to your repository](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/managing-repository-settings/managing-teams-and-people-with-access-to-your-repository)
+
 
 ### Domain 7 - Benefits of the GitHub Community
 
